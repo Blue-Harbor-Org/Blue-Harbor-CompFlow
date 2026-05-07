@@ -67,8 +67,8 @@ export default function LeadCard({ lead, onUnlock, onRefresh }: Props) {
           )}
         </div>
         <span
-          className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
-          style={{ background: src.bg, color: src.color }}
+          className="badge flex-shrink-0"
+          style={{ background: src.bg, color: src.color, border: `1px solid ${src.color}30` }}
         >
           {src.label}
         </span>
@@ -105,26 +105,26 @@ export default function LeadCard({ lead, onUnlock, onRefresh }: Props) {
       {/* Confirm unlock */}
       {showConfirm && (
         <div
-          className="text-xs p-2 rounded"
+          className="rounded-lg p-3 text-xs"
           style={{
-            background: 'rgba(212,168,67,0.1)',
+            background: 'var(--gold-dim)',
             border: '1px solid var(--border-gold)',
             color: 'var(--gold)',
           }}
         >
-          Unlock report for {lead.business_name} and send email to {lead.email}?
-          <div className="flex gap-2 mt-2">
+          Unlock &amp; email <strong>{lead.email}</strong>?
+          <div className="flex gap-2 mt-2.5">
             <button
+              type="button"
               onClick={handleUnlock}
-              className="px-3 py-1 rounded text-xs font-bold"
-              style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+              className="btn-primary flex-1 py-1.5 text-xs"
             >
-              Confirm
+              Yes — Unlock
             </button>
             <button
+              type="button"
               onClick={() => setShowConfirm(false)}
-              className="px-3 py-1 rounded text-xs"
-              style={{ color: 'var(--muted)' }}
+              className="btn-ghost flex-1 py-1.5 text-xs"
             >
               Cancel
             </button>
@@ -133,34 +133,21 @@ export default function LeadCard({ lead, onUnlock, onRefresh }: Props) {
       )}
 
       {/* Actions */}
-      <div className="tap-row flex gap-1 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="tap-row flex gap-2 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
         <Link
           href={`/dashboard/leads/${lead.id}`}
-          className="flex-1 rounded py-3 text-center text-xs font-medium transition-colors md:py-1.5"
-          style={{ color: 'var(--silver)', background: 'rgba(143,168,200,0.08)' }}
+          className="btn-ghost flex-1 py-2.5 text-xs"
         >
-          👁 View
+          View Details
         </Link>
         <button
           type="button"
           onClick={handleUnlock}
           disabled={unlocking}
-          className="flex-1 rounded py-3 text-xs font-medium transition-colors md:py-1.5"
-          style={{
-            color: 'var(--gold)',
-            background: 'var(--gold-dim)',
-            opacity: unlocking ? 0.6 : 1,
-          }}
+          className="btn-primary flex-1 py-2.5 text-xs"
         >
-          {unlocking ? '...' : '🔓 Unlock'}
+          {unlocking ? '…' : '🔓 Unlock'}
         </button>
-        <Link
-          href={`/dashboard/leads/${lead.id}`}
-          className="flex-1 rounded py-3 text-center text-xs font-medium transition-colors md:py-1.5"
-          style={{ color: 'var(--muted)', background: 'rgba(90,114,148,0.1)' }}
-        >
-          ✏ Edit
-        </Link>
       </div>
     </div>
   );

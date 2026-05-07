@@ -26,11 +26,21 @@
 
 /* ─── Admin panel light mode (scoped under .admin-theme-scope) ─── */
 /* Primary buttons use var(--navy) as ink on gold; remap in admin light scope */
-.admin-theme-scope[data-admin-theme="light"] .btn-primary {
+.admin-theme-scope[data-admin-theme="light"] .btn-primary,
+.admin-theme-scope[data-admin-theme="light"] .btn-primary:hover:not(:disabled) {
   color: #0f172a;
 }
-.admin-theme-scope[data-admin-theme="light"] .btn-primary:hover {
-  color: #0f172a;
+
+/* Light theme inputs */
+.admin-theme-scope[data-admin-theme="light"] .input {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.15);
+  color: var(--light);
+}
+
+.admin-theme-scope[data-admin-theme="light"] .input:focus {
+  border-color: var(--border-gold);
+  box-shadow: 0 0 0 3px rgba(154, 114, 9, 0.09);
 }
 
 .admin-theme-scope[data-admin-theme="light"] {
@@ -72,6 +82,8 @@ html, body {
 
 body {
   font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -93,49 +105,131 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Syne', sans-serif;
 }
 
-/* Card styles */
+/* ─── Card styles ─── */
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .card-gold {
   background: var(--card);
   border: 1px solid var(--border-gold);
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
-/* Button styles */
+.card-interactive {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card-interactive:hover {
+  border-color: var(--border-gold);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+}
+
+/* ─── Button system ─── */
+.btn-primary,
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+  text-decoration: none;
+  border: 1px solid transparent;
+  outline: none;
+}
+
 .btn-primary {
   background: var(--gold);
   color: var(--navy);
-  font-family: 'Syne', sans-serif;
   font-weight: 700;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  border-color: var(--gold);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: var(--gold2);
+  border-color: var(--gold2);
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(212,168,67,0.3);
+  box-shadow: 0 8px 24px rgba(212,168,67,0.28);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.btn-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .btn-ghost {
   background: transparent;
   color: var(--gold);
-  border: 1px solid var(--border-gold);
-  font-family: 'Syne', sans-serif;
+  border-color: var(--border-gold);
   font-weight: 600;
-  border-radius: 6px;
-  transition: all 0.2s ease;
 }
 
-.btn-ghost:hover {
+.btn-ghost:hover:not(:disabled) {
   background: var(--gold-dim);
   border-color: var(--gold);
 }
+
+.btn-ghost:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.btn-ghost:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Danger variant — for destructive actions */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  background: rgba(224,80,80,0.12);
+  color: var(--red);
+  border: 1px solid rgba(224,80,80,0.3);
+  transition: all 0.18s ease;
+  outline: none;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(224,80,80,0.22);
+  border-color: var(--red);
+}
+
+.btn-danger:active:not(:disabled) { transform: scale(0.98); }
+.btn-danger:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+.btn-danger:disabled { cursor: not-allowed; opacity: 0.5; }
 
 /* Gold divider */
 .gold-divider {
@@ -195,10 +289,91 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-/* Input styles — 16px avoids iOS zoom on focus */
+/* ─── Form inputs ─── */
+/* 16px min avoids iOS zoom on focus */
 input, textarea, select {
   font-family: 'Syne', sans-serif;
   font-size: 16px;
+}
+
+/* .input — design-system input class */
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(13, 31, 60, 0.8);
+  color: var(--light);
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.input:focus {
+  border-color: var(--border-gold);
+  box-shadow: 0 0 0 3px rgba(212, 168, 67, 0.09);
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* .label — consistent form label */
+.label {
+  display: block;
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--silver);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+/* ─── Badge utility ─── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge-gold {
+  background: var(--gold-dim);
+  color: var(--gold);
+  border: 1px solid var(--border-gold);
+}
+
+.badge-green {
+  background: rgba(46,204,138,0.12);
+  color: var(--green);
+  border: 1px solid rgba(46,204,138,0.3);
+}
+
+.badge-red {
+  background: rgba(224,80,80,0.12);
+  color: var(--red);
+  border: 1px solid rgba(224,80,80,0.3);
+}
+
+.badge-muted {
+  background: rgba(143,168,200,0.1);
+  color: var(--silver);
+  border: 1px solid var(--border);
 }
 
 /* Pulse animation for loading */

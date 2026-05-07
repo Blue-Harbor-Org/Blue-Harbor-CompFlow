@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json() as { leadId?: string };
-    const { leadId } = body;
+    const body = await req.json() as { leadId?: string; force?: boolean };
+    const { leadId, force = false } = body;
 
     if (!leadId) {
       return NextResponse.json({ error: 'leadId is required' }, { status: 400 });
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     const leadRow = lead as Lead;
 
-    if (leadRow.deepdive_status === 'generating') {
+    if (leadRow.deepdive_status === 'generating' && !force) {
       return NextResponse.json(
         { error: 'Deep dive generation already in progress' },
         { status: 409 }
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       .eq('report_type', 'deepdive')
       .maybeSingle();
 
-    if (existingDeep?.report_data) {
+    if (existingDeep?.report_data && !force) {
       return NextResponse.json({
         success: true,
         deepdiveToken: existingDeep.deepdive_token,

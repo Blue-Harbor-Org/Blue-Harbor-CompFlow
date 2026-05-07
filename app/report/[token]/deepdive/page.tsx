@@ -153,6 +153,11 @@ export default async function DeepDivePage({ params, searchParams }: Props) {
     return <Pending />;
   }
 
+  // Debug: log actual topFindings shape so field-name mismatches are visible in the terminal
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('[deepdive] topFindings sample:', JSON.stringify(deepReport.report_data.topFindings?.[0], null, 2));
+  }
+
   if (!isAdmin && deepReport.is_unlocked && !(leadRow as { deepdive_viewed_at?: string | null }).deepdive_viewed_at) {
     await supabase
       .from('leads')

@@ -42,12 +42,10 @@ export default function StatusDropdown({ leadId, currentStatus, onChange }: Prop
         value={status}
         onChange={handleChange}
         disabled={saving}
-        className="w-full px-4 py-2.5 rounded-lg text-sm outline-none appearance-none pr-8"
+        className="input pr-8 appearance-none"
         style={{
-          background: 'rgba(13,31,60,0.8)',
-          border: `1px solid ${current?.color ?? 'var(--border)'}`,
+          borderColor: current?.color ?? 'var(--border)',
           color: current?.color ?? 'var(--light)',
-          cursor: 'pointer',
         }}
       >
         {statuses.map((s) => (

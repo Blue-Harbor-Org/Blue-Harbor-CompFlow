@@ -87,8 +87,7 @@ export default function UnlockButton({ leadId, email, businessName, onSuccess }:
           <button
             type="button"
             onClick={() => setConfirming(false)}
-            className="min-h-12 w-full rounded-lg px-4 py-3 text-sm md:min-h-0 md:w-auto"
-            style={{ color: 'var(--muted)', border: '1px solid var(--border)' }}
+            className="btn-ghost min-h-12 w-full px-4 py-3 text-sm md:min-h-0 md:w-auto"
           >
             Cancel
           </button>

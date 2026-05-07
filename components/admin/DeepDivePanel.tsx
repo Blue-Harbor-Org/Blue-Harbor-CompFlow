@@ -32,13 +32,13 @@ export default function DeepDivePanel({
   const deepUrl = `${base}/report/${reportToken}/deepdive`;
   const adminPreviewUrl = `${deepUrl}?admin=true`;
 
-  async function handleGenerate() {
+  async function handleGenerate(force = false) {
     setGenerating(true);
     try {
       await fetch('/api/generate-deepdive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId }),
+        body: JSON.stringify({ leadId, force }),
       });
       startTransition(() => router.refresh());
     } finally {
@@ -158,6 +158,15 @@ export default function DeepDivePanel({
           >
             👁 Preview
           </button>
+          <button
+            type="button"
+            onClick={() => handleGenerate(true)}
+            disabled={generating}
+            className="btn-ghost w-full py-2 text-xs disabled:opacity-60"
+            style={{ color: 'var(--muted)' }}
+          >
+            {generating ? 'Regenerating...' : '🔄 Regenerate Report'}
+          </button>
         </div>
       )}
 
@@ -172,6 +181,15 @@ export default function DeepDivePanel({
             className="btn-ghost py-3 text-sm"
           >
             👁 View Report
+          </button>
+          <button
+            type="button"
+            onClick={() => handleGenerate(true)}
+            disabled={generating}
+            className="btn-ghost py-3 text-xs disabled:opacity-60"
+            style={{ color: 'var(--muted)' }}
+          >
+            {generating ? 'Regenerating...' : '🔄 Regenerate'}
           </button>
           {deepdiveStatus === 'viewed' && deepdiveViewedAt && (
             <span style={{ color: 'var(--green)', fontSize: 12 }}>

@@ -90,10 +90,10 @@ export default function AdminNav({ userEmail }: AdminNavProps) {
           type="button"
           onClick={handleSignOut}
           disabled={signingOut}
-          className="w-full min-h-[48px] rounded-lg px-3 py-3 text-left text-sm transition-all"
-          style={{ color: 'var(--muted)' }}
+          className="btn-ghost w-full min-h-[48px] px-3 py-2.5 text-sm justify-start"
+          style={{ color: 'var(--muted)', borderColor: 'transparent' }}
         >
-          {signingOut ? 'Signing out...' : '→ Sign Out'}
+          {signingOut ? 'Signing out…' : '→ Sign Out'}
         </button>
       </div>
     </div>

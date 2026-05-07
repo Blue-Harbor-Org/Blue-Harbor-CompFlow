@@ -71,44 +71,24 @@ export default function ManualLeadForm() {
     }
   }
 
-  const inputClass = 'w-full px-4 py-3 rounded-lg text-sm outline-none';
-  const inputStyle = {
-    background: 'rgba(13,31,60,0.8)',
-    border: '1px solid var(--border)',
-    color: 'var(--light)',
-  };
-
-  function handleFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    e.target.style.borderColor = 'var(--border-gold)';
-  }
-  function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    e.target.style.borderColor = 'var(--border)';
-  }
-
   return (
     <form onSubmit={handleSubmit} className="card p-8 space-y-5">
       <div className="grid grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-            Contact Name *
-          </label>
+          <label className="label">Contact Name *</label>
           <input
             type="text" required value={form.contact_name}
             onChange={(e) => update('contact_name', e.target.value)}
-            className={inputClass} style={inputStyle}
-            onFocus={handleFocus} onBlur={handleBlur}
+            className="input"
             placeholder="Jane Smith"
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-            Business Name *
-          </label>
+          <label className="label">Business Name *</label>
           <input
             type="text" required value={form.business_name}
             onChange={(e) => update('business_name', e.target.value)}
-            className={inputClass} style={inputStyle}
-            onFocus={handleFocus} onBlur={handleBlur}
+            className="input"
             placeholder="Acme Co."
           />
         </div>
@@ -116,81 +96,63 @@ export default function ManualLeadForm() {
 
       <div className="grid grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-            Email *
-          </label>
+          <label className="label">Email *</label>
           <input
             type="email" required value={form.email}
             onChange={(e) => update('email', e.target.value)}
-            className={inputClass} style={inputStyle}
-            onFocus={handleFocus} onBlur={handleBlur}
+            className="input"
             placeholder="jane@business.com"
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-            Phone
-          </label>
+          <label className="label">Phone</label>
           <input
             type="tel" value={form.phone}
             onChange={(e) => update('phone', e.target.value)}
-            className={inputClass} style={inputStyle}
-            onFocus={handleFocus} onBlur={handleBlur}
+            className="input"
             placeholder="(555) 000-0000"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-          Their Website URL *
-        </label>
+        <label className="label">Their Website URL *</label>
         <input
           type="url" required value={form.website_url}
           onChange={(e) => update('website_url', e.target.value)}
-          className={inputClass} style={inputStyle}
-          onFocus={handleFocus} onBlur={handleBlur}
+          className="input"
           placeholder="https://theirbusiness.com"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-5">
         <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-            Competitor URL *
-          </label>
+          <label className="label">Competitor URL *</label>
           <input
             type="url" required value={form.competitor_url}
             onChange={(e) => update('competitor_url', e.target.value)}
-            className={inputClass} style={inputStyle}
-            onFocus={handleFocus} onBlur={handleBlur}
+            className="input"
             placeholder="https://competitor.com"
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-            Competitor Name
-          </label>
+          <label className="label">Competitor Name</label>
           <input
             type="text" value={form.competitor_name}
             onChange={(e) => update('competitor_name', e.target.value)}
-            className={inputClass} style={inputStyle}
-            onFocus={handleFocus} onBlur={handleBlur}
+            className="input"
             placeholder="Competitor Co."
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="industry" className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-          Industry vertical
-        </label>
+        <label htmlFor="industry" className="label">Industry vertical</label>
         <select
           id="industry"
           value={form.industry}
           onChange={(e) => update('industry', e.target.value)}
-          className={inputClass}
-          style={inputStyle}
+          className="input"
         >
           {VERTICAL_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -204,16 +166,12 @@ export default function ManualLeadForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-          Notes
-        </label>
+        <label className="label">Notes</label>
         <textarea
           value={form.notes}
           onChange={(e) => update('notes', e.target.value)}
           rows={3}
-          className="w-full px-4 py-3 rounded-lg text-sm outline-none resize-none"
-          style={inputStyle}
-          onFocus={handleFocus} onBlur={handleBlur}
+          className="input resize-none"
           placeholder="Add any notes about this lead..."
         />
       </div>

@@ -18,6 +18,27 @@ const priorityColors = {
   low: { border: 'var(--silver)', bg: 'rgba(143,168,200,0.08)', badge: 'var(--silver)' },
 };
 
+type PriorityKey = keyof typeof priorityColors;
+
+function normalizeOpportunityPriority(raw: string | undefined): PriorityKey {
+  const p = raw?.toLowerCase().trim() ?? '';
+  if (p === 'high' || p === 'medium' || p === 'low') return p;
+  if (p === 'critical' || p === 'highest') return 'high';
+  return 'medium';
+}
+
+// Safely read a string from an object trying multiple field-name variants.
+// This protects against Claude using different key names than the schema specifies.
+function str(obj: unknown, ...keys: string[]): string {
+  if (!obj || typeof obj !== 'object') return '';
+  const o = obj as Record<string, unknown>;
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v === 'string' && v.trim()) return v;
+  }
+  return '';
+}
+
 export default function FullReportPage({
   lead,
   report,
@@ -96,14 +117,14 @@ export default function FullReportPage({
               className="hero-title font-heading mb-4 text-3xl leading-tight md:text-6xl"
               style={{ color: 'var(--light)' }}
             >
-              {data.hero.headline}
+              {str(data.hero, 'headline', 'title', 'heading')}
             </h1>
             <p className="hero-subtitle mx-auto mb-10 max-w-2xl text-base md:text-lg" style={{ color: 'var(--silver)' }}>
-              {data.hero.subheadline}
+              {str(data.hero, 'subheadline', 'subtitle', 'subTitle', 'description')}
             </p>
 
             <div className="stat-grid mb-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-              {data.hero.stats.map((stat, i) => (
+              {(data.hero?.stats ?? []).map((stat, i) => (
                 <div
                   key={i}
                   className="stat-box card p-3 text-center md:p-4"
@@ -149,7 +170,7 @@ export default function FullReportPage({
             </p>
           </div>
           <div className="space-y-4">
-            {data.topFindings.map((finding, i) => (
+            {(data.topFindings ?? []).map((finding, i) => (
               <FindingCard key={i} finding={finding} index={i} showFull={true} />
             ))}
           </div>
@@ -167,12 +188,33 @@ export default function FullReportPage({
           </h2>
           <div className="card overflow-hidden">
             <ComparisonTable
-              rows={data.comparison}
+              rows={data.comparison ?? []}
               clientName={lead.business_name}
-              competitorName={data.meta.competitorName}
+              competitorName={data.meta?.competitorName ?? 'Competitor'}
             />
           </div>
         </section>
+
+        {variant === 'deepdive' && !data.deepDive && (
+          <>
+            <div className="gold-divider mb-14" />
+            <section className="mb-14">
+              <div
+                className="card p-8 text-center"
+                style={{ borderColor: 'var(--border-gold)' }}
+              >
+                <div className="text-3xl mb-3">🔬</div>
+                <h3 className="font-heading text-xl mb-2" style={{ color: 'var(--gold)' }}>
+                  Deep Dive Sections Pending
+                </h3>
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                  The SEO analysis and reputation sections are being reprocessed. An updated
+                  report will be sent to you shortly.
+                </p>
+              </div>
+            </section>
+          </>
+        )}
 
         {data.deepDive && (
           <>
@@ -186,18 +228,18 @@ export default function FullReportPage({
               </h2>
               <div className="card p-6 mb-4" style={{ borderColor: 'var(--border-gold)' }}>
                 <h3 className="font-heading text-xl mb-3" style={{ color: 'var(--gold)' }}>
-                  {data.deepDive.seo.headline}
+                  {data.deepDive.seo?.headline}
                 </h3>
                 <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--silver)' }}>
-                  {data.deepDive.seo.summary}
+                  {data.deepDive.seo?.summary}
                 </p>
-                {data.deepDive.seo.keywordNotes && (
+                {data.deepDive.seo?.keywordNotes && (
                   <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
                     {data.deepDive.seo.keywordNotes}
                   </p>
                 )}
                 <ul className="space-y-2 text-sm" style={{ color: 'var(--silver)' }}>
-                  {data.deepDive.seo.bullets.map((b, i) => (
+                  {(data.deepDive.seo?.bullets ?? []).map((b, i) => (
                     <li key={i}>• {b}</li>
                   ))}
                 </ul>
@@ -214,7 +256,7 @@ export default function FullReportPage({
               </h2>
               <div className="card p-6" style={{ borderColor: 'var(--border-gold)' }}>
                 <h3 className="font-heading text-xl mb-4" style={{ color: 'var(--gold)' }}>
-                  {data.deepDive.reviews.headline}
+                  {data.deepDive.reviews?.headline}
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2 mb-4">
                   <div>
@@ -222,7 +264,7 @@ export default function FullReportPage({
                       You
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                      {data.deepDive.reviews.clientSummary}
+                      {data.deepDive.reviews?.clientSummary}
                     </p>
                   </div>
                   <div>
@@ -230,13 +272,13 @@ export default function FullReportPage({
                       Competitor
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                      {data.deepDive.reviews.competitorSummary}
+                      {data.deepDive.reviews?.competitorSummary}
                     </p>
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed border-t pt-4" style={{ borderColor: 'var(--border)', color: 'var(--light)' }}>
                   <strong style={{ color: 'var(--gold)' }}>Recommendation:</strong>{' '}
-                  {data.deepDive.reviews.recommendation}
+                  {data.deepDive.reviews?.recommendation}
                 </p>
               </div>
             </section>
@@ -257,7 +299,7 @@ export default function FullReportPage({
             Real, verifiable advantages you have right now.
           </p>
           <div className="grid md:grid-cols-2 gap-5">
-            {data.advantages.map((adv, i) => (
+            {(data.advantages ?? []).map((adv, i) => (
               <div
                 key={i}
                 className="card p-6"
@@ -268,7 +310,7 @@ export default function FullReportPage({
                     className="font-heading text-xl"
                     style={{ color: 'var(--light)' }}
                   >
-                    {adv.title}
+                    {str(adv, 'title', 'name', 'heading')}
                   </h3>
                   <span
                     className="text-xs font-semibold px-2 py-1 rounded flex-shrink-0 ml-2"
@@ -278,11 +320,11 @@ export default function FullReportPage({
                       color: 'var(--gold)',
                     }}
                   >
-                    {adv.badge}
+                    {str(adv, 'badge', 'tag', 'label', 'category')}
                   </span>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                  {adv.description}
+                  {str(adv, 'description', 'body', 'detail', 'summary', 'content')}
                 </p>
               </div>
             ))}
@@ -303,8 +345,9 @@ export default function FullReportPage({
             Gaps in your competitor&apos;s strategy you can move into now.
           </p>
           <div className="space-y-4">
-            {data.opportunities.map((opp, i) => {
-              const pColors = priorityColors[opp.priority];
+            {(data.opportunities ?? []).map((opp, i) => {
+              const pKey = normalizeOpportunityPriority(opp.priority);
+              const pColors = priorityColors[pKey];
               return (
                 <div
                   key={i}
@@ -319,7 +362,7 @@ export default function FullReportPage({
                       className="font-heading text-lg"
                       style={{ color: 'var(--light)' }}
                     >
-                      {opp.title}
+                      {str(opp, 'title', 'name', 'heading')}
                     </h3>
                     <span
                       className="text-xs font-bold px-2 py-1 rounded flex-shrink-0 ml-2 uppercase"
@@ -329,11 +372,11 @@ export default function FullReportPage({
                         border: `1px solid ${pColors.border}`,
                       }}
                     >
-                      {opp.priority}
+                      {pKey}
                     </span>
                   </div>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                    {opp.description}
+                    {str(opp, 'description', 'body', 'detail', 'summary', 'content')}
                   </p>
                 </div>
               );
@@ -355,7 +398,7 @@ export default function FullReportPage({
             Honest intelligence on where your competitor has the edge.
           </p>
           <div className="space-y-4">
-            {data.threats.map((threat, i) => (
+            {(data.threats ?? []).map((threat, i) => (
               <div
                 key={i}
                 className="card p-6"
@@ -365,10 +408,10 @@ export default function FullReportPage({
                   className="font-heading text-lg mb-2"
                   style={{ color: 'var(--light)' }}
                 >
-                  {threat.title}
+                  {str(threat, 'title', 'name', 'heading')}
                 </h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                  {threat.description}
+                  {str(threat, 'description', 'body', 'detail', 'summary', 'content')}
                 </p>
               </div>
             ))}
@@ -389,7 +432,7 @@ export default function FullReportPage({
             Prioritized steps — start here, do these in order.
           </p>
           <div className="space-y-0">
-            {data.roadmap.map((step, i) => (
+            {(data.roadmap ?? []).map((step, i) => (
               <div key={i} className="flex gap-6">
                 {/* Timeline */}
                 <div className="flex flex-shrink-0 flex-col items-center">
@@ -403,7 +446,7 @@ export default function FullReportPage({
                   >
                     {step.step}
                   </div>
-                  {i < data.roadmap.length - 1 && (
+                  {i < (data.roadmap ?? []).length - 1 && (
                     <div
                       className="w-0.5 flex-1 my-2"
                       style={{ background: 'var(--border)', minHeight: 40 }}
@@ -417,22 +460,22 @@ export default function FullReportPage({
                     className="text-xs font-semibold uppercase tracking-wider mb-1"
                     style={{ color: 'var(--gold)' }}
                   >
-                    {step.phase}
+                    {str(step, 'phase', 'stage', 'timeframe', 'period')}
                   </div>
                   <h3
                     className="font-heading text-xl mb-2"
                     style={{ color: 'var(--light)' }}
                   >
-                    {step.title}
+                    {str(step, 'title', 'name', 'action', 'heading')}
                   </h3>
                   <p
                     className="text-sm leading-relaxed mb-3"
                     style={{ color: 'var(--silver)' }}
                   >
-                    {step.description}
+                    {str(step, 'description', 'body', 'detail', 'summary', 'content')}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {step.tags.map((tag) => (
+                    {(step.tags ?? []).map((tag) => (
                       <span
                         key={tag}
                         className="text-xs px-2 py-1 rounded"

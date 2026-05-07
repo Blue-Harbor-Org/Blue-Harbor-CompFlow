@@ -25,9 +25,7 @@ export default function NotesField({ leadId, initialNotes }: Props) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-semibold" style={{ color: 'var(--silver)' }}>
-          Notes
-        </label>
+        <label className="label mb-0">Notes</label>
         {saving && <span className="text-xs" style={{ color: 'var(--muted)' }}>Saving...</span>}
         {saved && <span className="text-xs" style={{ color: 'var(--green)' }}>Saved ✓</span>}
       </div>
@@ -36,13 +34,7 @@ export default function NotesField({ leadId, initialNotes }: Props) {
         onChange={(e) => setNotes(e.target.value)}
         onBlur={handleBlur}
         rows={6}
-        className="min-h-[120px] w-full resize-none rounded-lg px-4 py-3 text-base outline-none md:text-sm"
-        style={{
-          background: 'rgba(13,31,60,0.8)',
-          border: '1px solid var(--border)',
-          color: 'var(--light)',
-        }}
-        onFocus={(e) => (e.target.style.borderColor = 'var(--border-gold)')}
+        className="input min-h-[120px] resize-none"
         placeholder="Add notes about this lead..."
       />
     </div>
