@@ -17,13 +17,14 @@ export default function TeaserPage({ lead, report }: TeaserPageProps) {
     reportData?.meta?.competitorName ||
     'your competitor';
 
-  const generatedDate = reportData?.meta?.generatedAt
-    ? new Date(reportData.meta.generatedAt).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const generatedDate =
+    reportData?.meta?.generatedAt ??
+    new Intl.DateTimeFormat('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'America/New_York',
+    }).format(new Date());
 
   return (
     <div style={{ background: 'var(--navy)', minHeight: '100vh' }}>

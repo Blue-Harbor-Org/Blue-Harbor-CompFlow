@@ -60,7 +60,10 @@ export default function RequestForm() {
       fetch('/api/generate-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: submitData.leadId }),
+        body: JSON.stringify({
+          leadId: submitData.leadId,
+          industry: form.industry,
+        }),
       }).catch(console.error);
 
     } catch (err) {
@@ -200,6 +203,48 @@ export default function RequestForm() {
         </div>
 
         <div>
+          <label
+            htmlFor="industry"
+            style={{
+              fontSize: 13,
+              color: 'var(--silver)',
+              marginBottom: 6,
+              display: 'block',
+            }}
+          >
+            What industry are you in?{' '}
+            <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span>
+          </label>
+          <select
+            id="industry"
+            value={form.industry}
+            onChange={(e) => update('industry', e.target.value)}
+            onFocus={handleFieldFocus}
+            onBlur={handleBlur}
+            style={{
+              width: '100%',
+              padding: '12px 14px',
+              background: 'var(--navy3)',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: form.industry === 'general' ? 'var(--muted)' : 'var(--light)',
+              fontSize: 16,
+              cursor: 'pointer',
+            }}
+          >
+            <option value="general">Select your industry (optional)</option>
+            {VERTICAL_OPTIONS.filter((opt) => opt.value !== 'general').map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+            Helps us tailor the analysis to what matters in your industry.
+          </p>
+        </div>
+
+        <div>
           <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
             Your Email *
           </label>
@@ -239,34 +284,6 @@ export default function RequestForm() {
             onBlur={handleBlur}
             placeholder="Helpful for scheduling your strategy call"
           />
-        </div>
-
-        <div>
-          <label
-            htmlFor="industry"
-            className="block text-sm font-semibold mb-2"
-            style={{ color: 'var(--silver)' }}
-          >
-            Industry
-          </label>
-          <select
-            id="industry"
-            value={form.industry}
-            onChange={(e) => update('industry', e.target.value)}
-            className={inputClass}
-            style={inputStyle}
-            onFocus={handleFieldFocus}
-            onBlur={handleBlur}
-          >
-            {VERTICAL_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
-            Shapes how we frame your competitive analysis — same Blue Harbor report, tailored language.
-          </p>
         </div>
 
         {error && (

@@ -106,6 +106,11 @@ Return ONLY the JSON. Nothing else.`;
     .trim();
 
   const parsed = JSON.parse(cleaned) as ReportData;
-  if (!parsed.meta.generatedAt) parsed.meta.generatedAt = new Date().toISOString();
+  parsed.meta.generatedAt = new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date());
   return parsed;
 }

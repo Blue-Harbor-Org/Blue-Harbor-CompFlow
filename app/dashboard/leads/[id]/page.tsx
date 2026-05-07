@@ -7,7 +7,7 @@ import NotesField from '@/components/admin/NotesField';
 import UnlockButton from '@/components/admin/UnlockButton';
 import CopyButton from '@/components/admin/CopyButton';
 import GenerateReportButton from '@/components/admin/GenerateReportButton';
-import IndustrySelect from '@/components/admin/IndustrySelect';
+import LeadIndustryRegenerate from '@/components/admin/LeadIndustryRegenerate';
 import Link from 'next/link';
 
 interface Props {
@@ -137,6 +137,11 @@ export default async function LeadDetailPage({ params }: Props) {
                     </div>
                   ))}
                 </div>
+
+                <LeadIndustryRegenerate
+                  leadId={lead.id}
+                  currentIndustry={(lead as { industry?: string }).industry ?? 'general'}
+                />
               </div>
 
               {/* Status */}
@@ -145,14 +150,6 @@ export default async function LeadDetailPage({ params }: Props) {
                   Pipeline Status
                 </h2>
                 <StatusDropdown leadId={lead.id} currentStatus={lead.status} />
-              </div>
-
-              {/* Industry vertical */}
-              <div className="card p-6">
-                <IndustrySelect
-                  leadId={lead.id}
-                  currentIndustry={(lead as { industry?: string }).industry ?? 'general'}
-                />
               </div>
 
               {/* Notes */}

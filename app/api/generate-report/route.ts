@@ -5,13 +5,18 @@ import { scrapeWebsite } from '@/lib/scraper';
 import { analyzeWithClaude } from '@/lib/analyzeWithClaude';
 import { sendReportReadyEmail } from '@/lib/resend';
 import { REPORT_MODEL_COOKIE, resolveReportModelId } from '@/lib/reportModel';
+import { normalizeIndustryId } from '@/lib/verticals';
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as { leadId?: string };
-    const { leadId } = body;
+    const body = await req.json() as {
+      leadId?: string;
+      industry?: string;
+      regenerate?: boolean;
+    };
+    const { leadId, industry: industryFromBody, regenerate } = body;
 
     const cookieStore = await cookies();
     const modelId = resolveReportModelId(
@@ -34,6 +39,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
+    let industryForReport =
+      typeof lead.industry === 'string' && lead.industry.length > 0
+        ? lead.industry
+        : 'general';
+
+    if (typeof industryFromBody === 'string' && industryFromBody.trim().length > 0) {
+      const industryId = normalizeIndustryId(industryFromBody);
+      await supabase.from('leads').update({ industry: industryId }).eq('id', leadId);
+      industryForReport = industryId;
+    }
+
     // Scrape both sites in parallel
     const [clientContent, competitorContent] = await Promise.all([
       scrapeWebsite(lead.website_url),
@@ -42,12 +58,6 @@ export async function POST(req: NextRequest) {
 
     const competitorName = lead.competitor_name || lead.competitor_url;
 
-    // Analyze with Claude
-    const industry =
-      typeof lead.industry === 'string' && lead.industry.length > 0
-        ? lead.industry
-        : 'general';
-
     const reportData = await analyzeWithClaude(
       clientContent,
       competitorContent,
@@ -55,7 +65,7 @@ export async function POST(req: NextRequest) {
       lead.website_url,
       competitorName,
       lead.competitor_url,
-      industry,
+      industryForReport,
       modelId
     );
 
@@ -91,20 +101,20 @@ export async function POST(req: NextRequest) {
       .update({ status: 'report_ready' })
       .eq('id', leadId);
 
-    // Send email
-    const firstName = lead.contact_name.split(' ')[0];
-    try {
-      await sendReportReadyEmail(
-        lead.email,
-        firstName,
-        lead.business_name,
-        reportData.meta.competitorName || competitorName,
-        lead.report_token,
-        reportData
-      );
-    } catch (emailErr) {
-      console.error('Email send failed:', emailErr);
-      // Don't fail the whole request for email errors
+    if (!regenerate) {
+      const firstName = lead.contact_name.split(' ')[0];
+      try {
+        await sendReportReadyEmail(
+          lead.email,
+          firstName,
+          lead.business_name,
+          reportData.meta.competitorName || competitorName,
+          lead.report_token,
+          reportData
+        );
+      } catch (emailErr) {
+        console.error('Email send failed:', emailErr);
+      }
     }
 
     return NextResponse.json({
