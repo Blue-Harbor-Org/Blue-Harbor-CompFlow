@@ -31,7 +31,7 @@ export default async function DashboardPage() {
         <div
           className="sticky top-0 z-30 flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8 md:py-5"
           style={{
-            background: 'rgba(5,12,26,0.95)',
+            background: 'var(--admin-sticky-bg)',
             borderBottom: '1px solid var(--border)',
             backdropFilter: 'blur(12px)',
           }}

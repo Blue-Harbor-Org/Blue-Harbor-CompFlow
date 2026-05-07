@@ -18,6 +18,46 @@
   --border-gold: rgba(212,168,67,0.25);
   --background:  #050c1a;
   --foreground:  #e8edf5;
+  /* Admin chrome (headers, drawer scrim) — overridden in light theme */
+  --admin-sticky-bg: rgba(5, 12, 26, 0.96);
+  --admin-drawer-scrim: rgba(5, 12, 26, 0.85);
+  --admin-drawer-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+}
+
+/* ─── Admin panel light mode (scoped under .admin-theme-scope) ─── */
+/* Primary buttons use var(--navy) as ink on gold; remap in admin light scope */
+.admin-theme-scope[data-admin-theme="light"] .btn-primary {
+  color: #0f172a;
+}
+.admin-theme-scope[data-admin-theme="light"] .btn-primary:hover {
+  color: #0f172a;
+}
+
+.admin-theme-scope[data-admin-theme="light"] {
+  color-scheme: light;
+  --navy:        #eef1f8;
+  --navy2:       #e4e9f2;
+  --navy3:       #d9e0ed;
+  --gold:        #9a7209;
+  --gold2:       #b8890c;
+  --gold-dim:    rgba(154, 114, 9, 0.12);
+  --silver:      #3d4f66;
+  --light:       #0f172a;
+  --muted:       #64748b;
+  --green:       #0f766e;
+  --red:         #b91c1c;
+  --card:        rgba(255, 255, 255, 0.92);
+  --border:      rgba(15, 23, 42, 0.12);
+  --border-gold: rgba(154, 114, 9, 0.35);
+  --background:  #eef1f8;
+  --foreground:  #0f172a;
+  --admin-sticky-bg: rgba(238, 241, 248, 0.97);
+  --admin-drawer-scrim: rgba(15, 23, 42, 0.35);
+  --admin-drawer-shadow: -8px 0 28px rgba(15, 23, 42, 0.08);
+}
+
+.admin-theme-scope[data-admin-theme="dark"] {
+  color-scheme: dark;
 }
 
 * {

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 import { useState } from 'react';
 import ReportModelToggle from '@/components/admin/ReportModelToggle';
+import AdminThemeToggle from '@/components/admin/AdminThemeToggle';
 
 interface AdminNavProps {
   userEmail?: string;
@@ -74,7 +75,8 @@ export default function AdminNav({ userEmail }: AdminNavProps) {
         })}
       </nav>
 
-      <div className="shrink-0 px-4 pt-4">
+      <div className="shrink-0 space-y-3 px-4 pt-4">
+        <AdminThemeToggle />
         <ReportModelToggle />
       </div>
 
@@ -102,7 +104,7 @@ export default function AdminNav({ userEmail }: AdminNavProps) {
       <header
         className="admin-mobile-header fixed left-0 right-0 top-0 z-50 items-center justify-between px-4 py-3"
         style={{
-          background: 'rgba(5,12,26,0.96)',
+          background: 'var(--admin-sticky-bg)',
           borderBottom: '1px solid var(--border)',
           backdropFilter: 'blur(12px)',
           paddingTop: 'max(12px, env(safe-area-inset-top))',
@@ -125,7 +127,7 @@ export default function AdminNav({ userEmail }: AdminNavProps) {
       {drawerOpen && (
         <div
           className="admin-mobile-header fixed inset-0 z-[60] md:hidden"
-          style={{ background: 'rgba(5,12,26,0.85)' }}
+          style={{ background: 'var(--admin-drawer-scrim)' }}
           role="presentation"
           onClick={() => setDrawerOpen(false)}
         >
@@ -134,7 +136,7 @@ export default function AdminNav({ userEmail }: AdminNavProps) {
             style={{
               background: 'var(--navy2)',
               borderLeft: '1px solid var(--border)',
-              boxShadow: '-8px 0 32px rgba(0,0,0,0.4)',
+              boxShadow: 'var(--admin-drawer-shadow)',
             }}
             onClick={(e) => e.stopPropagation()}
           >

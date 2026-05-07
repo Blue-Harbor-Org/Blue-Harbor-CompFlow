@@ -89,9 +89,10 @@ export default async function LeadDetailPage({ params }: Props) {
     .eq('report_type', 'deepdive')
     .maybeSingle();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const teaserUrl = `${appUrl}/report/${lead.report_token}`;
-  const fullUrl = `${appUrl}/report/${lead.report_token}/full?admin=true`;
+  const dashBase =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
+  const teaserUrl = `${dashBase}/report/${lead.report_token}`;
+  const fullUrl = `${dashBase}/report/${lead.report_token}/full?admin=true`;
 
   return (
     <div style={{ background: 'var(--navy)', minHeight: '100vh' }}>
@@ -101,7 +102,7 @@ export default async function LeadDetailPage({ params }: Props) {
         <div
           className="sticky top-0 z-30 flex items-center gap-4 px-4 py-4 md:px-8 md:py-5"
           style={{
-            background: 'rgba(5,12,26,0.95)',
+            background: 'var(--admin-sticky-bg)',
             borderBottom: '1px solid var(--border)',
             backdropFilter: 'blur(12px)',
           }}
@@ -296,7 +297,6 @@ export default async function LeadDetailPage({ params }: Props) {
               <DeepDivePanel
                 leadId={lead.id}
                 reportToken={lead.report_token}
-                appUrl={appUrl}
                 deepdiveStatus={(lead as { deepdive_status?: string | null }).deepdive_status ?? null}
                 deepdiveViewedAt={(lead as { deepdive_viewed_at?: string | null }).deepdive_viewed_at ?? null}
                 deepReport={(deepReport ?? null) as Report | null}

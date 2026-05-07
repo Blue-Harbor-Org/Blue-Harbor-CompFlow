@@ -7,16 +7,18 @@ import type { Report } from '@/types/report';
 interface Props {
   leadId: string;
   reportToken: string;
-  appUrl: string;
   deepdiveStatus: string | null;
   deepdiveViewedAt: string | null;
   deepReport: Report | null;
 }
 
+function clientBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ?? '';
+}
+
 export default function DeepDivePanel({
   leadId,
   reportToken,
-  appUrl,
   deepdiveStatus,
   deepdiveViewedAt,
   deepReport,
@@ -26,8 +28,9 @@ export default function DeepDivePanel({
   const [generating, setGenerating] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
 
-  const deepUrl = `${appUrl}/report/${reportToken}/deepdive`;
-  const previewUrl = `${deepUrl}?admin=true`;
+  const base = clientBaseUrl();
+  const deepUrl = `${base}/report/${reportToken}/deepdive`;
+  const adminPreviewUrl = `${deepUrl}?admin=true`;
 
   async function handleGenerate() {
     setGenerating(true);
@@ -150,7 +153,7 @@ export default function DeepDivePanel({
           </button>
           <button
             type="button"
-            onClick={() => window.open(previewUrl, '_blank')}
+            onClick={() => window.open(adminPreviewUrl, '_blank')}
             className="btn-ghost flex-1 min-w-[140px] py-3 text-sm"
           >
             👁 Preview
@@ -165,7 +168,7 @@ export default function DeepDivePanel({
           </button>
           <button
             type="button"
-            onClick={() => window.open(previewUrl, '_blank')}
+            onClick={() => window.open(adminPreviewUrl, '_blank')}
             className="btn-ghost py-3 text-sm"
           >
             👁 View Report

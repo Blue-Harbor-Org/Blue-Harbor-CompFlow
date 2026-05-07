@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { sendDeepDiveUnlocked } from '@/lib/resend';
+import { getPublicSiteUrl } from '@/lib/siteUrl';
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', leadId);
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = getPublicSiteUrl();
     const deepDiveUrl = `${appUrl}/report/${lead.report_token}/deepdive`;
 
     try {

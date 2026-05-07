@@ -16,7 +16,7 @@ export default async function NewLeadPage() {
         <div
           className="sticky top-0 z-30 flex items-center gap-4 px-4 py-4 md:px-8 md:py-5"
           style={{
-            background: 'rgba(5,12,26,0.95)',
+            background: 'var(--admin-sticky-bg)',
             borderBottom: '1px solid var(--border)',
             backdropFilter: 'blur(12px)',
           }}
