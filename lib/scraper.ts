@@ -1,5 +1,26 @@
 import * as cheerio from 'cheerio';
 
+/** Priority order — highest value pages first; trimmed as needed */
+export const PAGE_PRIORITY = [
+  { path: '', label: 'HOMEPAGE', maxChars: 2000 },
+  { path: '/services', label: 'SERVICES', maxChars: 2000 },
+  { path: '/our-services', label: 'SERVICES', maxChars: 2000 },
+  { path: '/pricing', label: 'PRICING', maxChars: 1500 },
+  { path: '/about', label: 'ABOUT', maxChars: 1000 },
+  { path: '/about-us', label: 'ABOUT', maxChars: 1000 },
+  { path: '/team', label: 'TEAM', maxChars: 800 },
+  { path: '/reviews', label: 'REVIEWS', maxChars: 800 },
+  { path: '/contact', label: 'CONTACT', maxChars: 400 },
+];
+
+/** Total cap across all stitched pages (cost control) */
+export const MAX_TOTAL_CHARS = 6000;
+
+function sliceText(text: string, maxChars: number): string {
+  const t = text.trim();
+  return t.length <= maxChars ? t : `${t.slice(0, maxChars)}…`;
+}
+
 export async function scrapeWebsite(url: string): Promise<string> {
   try {
     const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
@@ -40,9 +61,42 @@ export async function scrapeWebsite(url: string): Promise<string> {
       `BODY CONTENT: ${bodyText}`,
     ].join('\n\n');
 
-    return content.slice(0, 6000);
+    return sliceText(content, 6000);
   } catch (error) {
     console.error(`Scraping failed for ${url}:`, error);
     return `Could not scrape ${url}. Limited analysis available.`;
   }
+}
+
+/**
+ * Multi-path scrape with per-page caps and global trim (~6k chars).
+ */
+export async function scrapeMultiPageBundle(baseUrl: string): Promise<string> {
+  const root = baseUrl.replace(/\/$/, '');
+  const normalizedRoot = root.startsWith('http') ? root : `https://${root}`;
+
+  const chunks: string[] = [];
+
+  for (const page of PAGE_PRIORITY) {
+    const url = `${normalizedRoot}${page.path}`;
+    try {
+      const raw = await scrapeWebsite(url);
+      const trimmed = sliceText(raw, page.maxChars);
+      chunks.push(`=== ${page.label} (${page.path || '/'}) ===\n${trimmed}`);
+    } catch {
+      // skip failed paths
+    }
+  }
+
+  return trimForTokens(chunks);
+}
+
+/** Stitch labeled chunks and enforce global max */
+export function trimForTokens(labeledChunks: string[]): string {
+  let combined = labeledChunks.join('\n\n');
+  if (combined.length <= MAX_TOTAL_CHARS) return combined;
+
+  const overflow = combined.length - MAX_TOTAL_CHARS;
+  console.warn(`[scraper] Trimming ${overflow} chars from multi-page bundle`);
+  return `${combined.slice(0, MAX_TOTAL_CHARS)}…`;
 }

@@ -44,6 +44,21 @@ export interface RoadmapStep {
   tags: string[];
 }
 
+export interface DeepDiveExtras {
+  seo: {
+    headline: string;
+    summary: string;
+    bullets: string[];
+    keywordNotes?: string;
+  };
+  reviews: {
+    headline: string;
+    clientSummary: string;
+    competitorSummary: string;
+    recommendation: string;
+  };
+}
+
 export interface ReportData {
   meta: {
     clientName: string;
@@ -71,7 +86,11 @@ export interface ReportData {
     headline: string;
     body: string;
   };
+  /** Present on deep-dive deliverables only */
+  deepDive?: DeepDiveExtras;
 }
+
+export type ReportType = 'standard' | 'deepdive';
 
 export interface Report {
   id: string;
@@ -83,4 +102,6 @@ export interface Report {
   unlocked_at: string | null;
   viewed_teaser_at: string | null;
   viewed_full_at: string | null;
+  report_type?: ReportType;
+  deepdive_token?: string | null;
 }

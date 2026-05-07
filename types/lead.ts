@@ -9,6 +9,8 @@ export type LeadStatus =
 
 export type LeadSource = 'public_form' | 'manual';
 
+export type DeepDiveStatus = 'generating' | 'ready' | 'unlocked' | 'viewed';
+
 export interface Lead {
   id: string;
   created_at: string;
@@ -26,4 +28,7 @@ export interface Lead {
   report_token: string;
   notes: string | null;
   owner_id: string | null;
+  deepdive_status?: DeepDiveStatus | null;
+  deepdive_unlocked_at?: string | null;
+  deepdive_viewed_at?: string | null;
 }

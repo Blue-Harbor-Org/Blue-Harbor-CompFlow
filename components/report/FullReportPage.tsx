@@ -9,6 +9,7 @@ import Link from 'next/link';
 interface Props {
   lead: Lead;
   report: Report;
+  variant?: 'standard' | 'deepdive';
 }
 
 const priorityColors = {
@@ -17,7 +18,11 @@ const priorityColors = {
   low: { border: 'var(--silver)', bg: 'rgba(143,168,200,0.08)', badge: 'var(--silver)' },
 };
 
-export default function FullReportPage({ lead, report }: Props) {
+export default function FullReportPage({
+  lead,
+  report,
+  variant = 'standard',
+}: Props) {
   const data = report.report_data!;
   const calendlyUrl = process.env.NEXT_PUBLIC_CALENDLY_URL || '#';
 
@@ -55,7 +60,7 @@ export default function FullReportPage({ lead, report }: Props) {
             color: 'var(--green)',
           }}
         >
-          ✓ Full Report Unlocked
+          {variant === 'deepdive' ? '🔬 Deep Dive Unlocked' : '✓ Full Report Unlocked'}
         </span>
       </nav>
 
@@ -83,7 +88,9 @@ export default function FullReportPage({ lead, report }: Props) {
                 color: 'var(--gold)',
               }}
             >
-              Competitive Strategy Report
+              {variant === 'deepdive'
+                ? 'Deep Dive Competitive Intelligence'
+                : 'Competitive Strategy Report'}
             </div>
             <h1
               className="hero-title font-heading mb-4 text-3xl leading-tight md:text-6xl"
@@ -166,6 +173,75 @@ export default function FullReportPage({ lead, report }: Props) {
             />
           </div>
         </section>
+
+        {data.deepDive && (
+          <>
+            <div className="gold-divider mb-14" />
+            <section className="mb-14">
+              <h2
+                className="font-heading text-3xl md:text-4xl mb-6"
+                style={{ color: 'var(--light)' }}
+              >
+                SEO & Search Visibility
+              </h2>
+              <div className="card p-6 mb-4" style={{ borderColor: 'var(--border-gold)' }}>
+                <h3 className="font-heading text-xl mb-3" style={{ color: 'var(--gold)' }}>
+                  {data.deepDive.seo.headline}
+                </h3>
+                <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--silver)' }}>
+                  {data.deepDive.seo.summary}
+                </p>
+                {data.deepDive.seo.keywordNotes && (
+                  <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
+                    {data.deepDive.seo.keywordNotes}
+                  </p>
+                )}
+                <ul className="space-y-2 text-sm" style={{ color: 'var(--silver)' }}>
+                  {data.deepDive.seo.bullets.map((b, i) => (
+                    <li key={i}>• {b}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+
+            <div className="gold-divider mb-14" />
+            <section className="mb-14">
+              <h2
+                className="font-heading text-3xl md:text-4xl mb-6"
+                style={{ color: 'var(--light)' }}
+              >
+                Reviews & Reputation
+              </h2>
+              <div className="card p-6" style={{ borderColor: 'var(--border-gold)' }}>
+                <h3 className="font-heading text-xl mb-4" style={{ color: 'var(--gold)' }}>
+                  {data.deepDive.reviews.headline}
+                </h3>
+                <div className="grid gap-4 md:grid-cols-2 mb-4">
+                  <div>
+                    <div className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--muted)' }}>
+                      You
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
+                      {data.deepDive.reviews.clientSummary}
+                    </p>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--muted)' }}>
+                      Competitor
+                    </div>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
+                      {data.deepDive.reviews.competitorSummary}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm leading-relaxed border-t pt-4" style={{ borderColor: 'var(--border)', color: 'var(--light)' }}>
+                  <strong style={{ color: 'var(--gold)' }}>Recommendation:</strong>{' '}
+                  {data.deepDive.reviews.recommendation}
+                </p>
+              </div>
+            </section>
+          </>
+        )}
 
         <div className="gold-divider mb-14" />
 

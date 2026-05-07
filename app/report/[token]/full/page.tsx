@@ -26,12 +26,12 @@ export default async function FullReportRoute({ params, searchParams }: Props) {
     notFound();
   }
 
-  // Fetch report
   const { data: report, error: reportError } = await supabase
     .from('reports')
     .select('*')
     .eq('lead_id', lead.id)
-    .single();
+    .eq('report_type', 'standard')
+    .maybeSingle();
 
   if (reportError || !report) {
     redirect(`/report/${token}?locked=true`);

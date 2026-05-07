@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import type { ReportData } from '@/types/report';
+import type { Lead } from '@/types/lead';
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
@@ -112,6 +113,34 @@ export async function sendUnlockEmail(
     from: FROM,
     to,
     subject: `Your full Blue Harbor report is unlocked — ${businessName}`,
+    html: emailBase(content),
+  });
+}
+
+export async function sendDeepDiveUnlocked(lead: Lead, deepDiveUrl: string) {
+  const competitorName =
+    lead.competitor_name || lead.competitor_url || 'your competitor';
+  const content = `
+    <div class="heading">Your full deep-dive competitive report is ready</div>
+    <p class="body-text">${lead.contact_name.split(' ')[0]} —</p>
+    <p class="body-text">Great talking with you. Based on our conversation, we ran a full deep-dive competitive
+      analysis on <strong style="color:#e8edf5">${lead.business_name}</strong> vs <strong style="color:#e8edf5">${competitorName}</strong>.</p>
+    <p class="body-text">This goes beyond the initial report — it includes:</p>
+    <ul style="margin:0 0 20px 0;padding-left:20px;color:#8fa8c8;line-height:2">
+      <li>Real traffic + keyword framing for both businesses</li>
+      <li>Google review / reputation comparison</li>
+      <li>Full category competitive breakdown</li>
+      <li>A refined strategy section tailored to your vertical</li>
+    </ul>
+    <a href="${deepDiveUrl}" class="btn">View Your Deep Dive Report →</a>
+    <p class="body-text">Happy to walk through it together — just reply here.</p>
+    <p class="body-text">— Blue Harbor</p>
+  `;
+
+  return getResend().emails.send({
+    from: FROM,
+    to: lead.email,
+    subject: `Your full deep-dive competitive report is ready — ${lead.business_name}`,
     html: emailBase(content),
   });
 }

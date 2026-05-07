@@ -77,22 +77,24 @@ export async function POST(req: NextRequest) {
         .eq('id', leadId);
     }
 
-    // Check if report already exists
     const { data: existingReport } = await supabase
       .from('reports')
       .select('id')
       .eq('lead_id', leadId)
-      .single();
+      .eq('report_type', 'standard')
+      .maybeSingle();
 
     if (existingReport) {
       await supabase
         .from('reports')
         .update({ report_data: reportData })
-        .eq('lead_id', leadId);
+        .eq('id', existingReport.id);
     } else {
-      await supabase
-        .from('reports')
-        .insert({ lead_id: leadId, report_data: reportData });
+      await supabase.from('reports').insert({
+        lead_id: leadId,
+        report_data: reportData,
+        report_type: 'standard',
+      });
     }
 
     // Update lead status

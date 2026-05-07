@@ -22,7 +22,25 @@ CRITICAL OUTPUT RULES:
 - advantages must have 4-6 items (only real, verifiable advantages)
 - opportunities must have 4-6 items
 - threats must have 2-4 items (honest about where competitor is stronger)
-- roadmap must have 6 steps`;
+- roadmap must have 6 steps
+
+JSON SCHEMA (must match exactly):
+{
+  "meta": { "clientName": string, "clientUrl": string, "competitorName": string, "competitorUrl": string, "generatedAt": string },
+  "hero": {
+    "headline": string,
+    "subheadline": string,
+    "stats": [ exactly 4 items: { "value", "label", "note" } ]
+  },
+  "overview": { "clientSummary": string, "competitorSummary": string },
+  "topFindings": [ exactly 3 items with "title", "teaser", "fullDescription", "severity": "high"|"medium"|"low" ],
+  "comparison": [ 10-12 rows: { "category", "competitor", "client", "advantage": "client"|"competitor"|"even", "advantageNote" } ],
+  "advantages": [ 4-6 items: { "title", "description", "badge" } ],
+  "opportunities": [ 4-6 items: { "title", "description", "priority": "high"|"medium"|"low" } ],
+  "threats": [ 2-4 items: { "title", "description" } ],
+  "roadmap": [ 6 steps: { "step": number, "phase", "title", "description", "tags": string[] } ],
+  "cta": { "headline": string, "body": string }
+}`;
 
 function buildSystemPrompt(industry: string): string {
   const vertical = getVertical(industry);
@@ -37,7 +55,7 @@ Tailor examples, terminology, and recommendations to what actually matters in ${
 A dental report should reference patient trust and insurance. A fitness report should reference membership friction and transformation. A restaurant report should reference reviews and delivery. Be specific to the industry — not generic.
 `;
 
-  return BASE_SYSTEM_PROMPT + verticalBlock;
+  return BASE_SYSTEM_PROMPT + verticalBlock + '\n\nReturn ONLY the JSON object. Nothing else.';
 }
 
 export async function analyzeWithClaude(
@@ -50,48 +68,25 @@ export async function analyzeWithClaude(
   industry: string = 'general',
   anthropicModelId: string = resolveReportModelId()
 ): Promise<ReportData> {
-  const prompt = `Analyze these two businesses and return the competitive audit JSON.
+  const userPrompt = `Analyze CLIENT vs COMPETITOR below. Return ONLY valid JSON matching the schema in your instructions.
 
-CLIENT (writing FOR them):
-Name: ${clientName}
+CLIENT: ${clientName}
 URL: ${clientUrl}
-Content: ${clientContent}
 
-COMPETITOR (their main competition):
-Name: ${competitorName}
+${clientContent}
+
+---
+
+COMPETITOR: ${competitorName}
 URL: ${competitorUrl}
-Content: ${competitorContent}
 
-Return a single JSON object matching this schema exactly:
-{
-  "meta": { "clientName", "clientUrl", "competitorName", "competitorUrl", "generatedAt": "<ISO>" },
-  "hero": {
-    "headline": "<8-12 word punchy headline — client's core advantage. Start strong.>",
-    "subheadline": "<1-2 sentences naming specific advantages>",
-    "stats": [4 items: { "value", "label", "note" }]
-  },
-  "overview": { "clientSummary": "<2-3 sentences>", "competitorSummary": "<2-3 sentences>" },
-  "topFindings": [exactly 3: {
-    "title": "<finding title — creates urgency>",
-    "teaser": "<1 sentence shown on locked teaser — intriguing, not complete>",
-    "fullDescription": "<2-3 sentences — full detail shown in unlocked report>",
-    "severity": "high|medium|low"
-  }],
-  "comparison": [10-12 rows: { "category", "competitor", "client", "advantage": "client|competitor|even", "advantageNote" }],
-  "advantages": [4-6: { "title", "description": "<2-3 sentences>", "badge": "<short label>" }],
-  "opportunities": [4-6: { "title", "description": "<2-3 sentences>", "priority": "high|medium|low" }],
-  "threats": [2-4: { "title", "description": "<2 sentences — honest>" }],
-  "roadmap": [6 steps: { "step": number, "phase": "<e.g. Days 1-14 · Immediate>", "title", "description": "<2-3 sentences>", "tags": ["tag1","tag2"] }],
-  "cta": { "headline": "<8-12 word closing headline>", "body": "<2-3 sentences driving urgency>" }
-}
-
-Return ONLY the JSON. Nothing else.`;
+${competitorContent}`;
 
   const response = await client.messages.create({
     model: anthropicModelId,
     max_tokens: 8000,
     system: buildSystemPrompt(industry),
-    messages: [{ role: 'user', content: prompt }],
+    messages: [{ role: 'user', content: userPrompt }],
   });
 
   const rawText = response.content

@@ -26,12 +26,12 @@ export default async function ReportTeaserPage({ params, searchParams }: Props) 
     notFound();
   }
 
-  // Fetch report
   const { data: report } = await supabase
     .from('reports')
     .select('*')
     .eq('lead_id', lead.id)
-    .single();
+    .eq('report_type', 'standard')
+    .maybeSingle();
 
   // If unlocked (and not coming from locked redirect), go to full report
   if (report?.is_unlocked && !locked) {

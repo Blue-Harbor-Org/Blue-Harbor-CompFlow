@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import { sendUnlockEmail } from '@/lib/resend';
+import { sendDeepDiveUnlocked } from '@/lib/resend';
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify admin auth
     const serverSupabase = await createServerSupabaseClient();
-    const { data: { user } } = await serverSupabase.auth.getUser();
+    const {
+      data: { user },
+    } = await serverSupabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -22,7 +23,6 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // Fetch lead
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select('*')
@@ -33,49 +33,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const { data: report, error: reportError } = await supabase
+    const { data: deepReport, error: reportError } = await supabase
       .from('reports')
       .select('*')
       .eq('lead_id', leadId)
-      .eq('report_type', 'standard')
+      .eq('report_type', 'deepdive')
       .maybeSingle();
 
-    if (reportError || !report) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    if (reportError || !deepReport) {
+      return NextResponse.json(
+        { error: 'Deep dive report not found' },
+        { status: 404 }
+      );
     }
 
     await supabase
       .from('reports')
-      .update({ is_unlocked: true, unlocked_at: new Date().toISOString() })
-      .eq('id', report.id);
+      .update({
+        is_unlocked: true,
+        unlocked_at: new Date().toISOString(),
+      })
+      .eq('id', deepReport.id);
 
     await supabase
       .from('leads')
-      .update({ status: 'unlocked' })
+      .update({
+        deepdive_status: 'unlocked',
+        deepdive_unlocked_at: new Date().toISOString(),
+      })
       .eq('id', leadId);
 
-    // Send unlock email
-    const firstName = lead.contact_name.split(' ')[0];
-    const competitorName =
-      lead.competitor_name || report.report_data?.meta?.competitorName || lead.competitor_url;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const deepDiveUrl = `${appUrl}/report/${lead.report_token}/deepdive`;
 
     try {
-      await sendUnlockEmail(
-        lead.email,
-        firstName,
-        lead.business_name,
-        competitorName,
-        lead.report_token
-      );
+      await sendDeepDiveUnlocked(lead, deepDiveUrl);
     } catch (emailErr) {
-      console.error('Unlock email send failed:', emailErr);
+      console.error('Deep dive unlock email failed:', emailErr);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      deepdiveUrl: deepDiveUrl,
+    });
   } catch (error) {
-    console.error('Unlock report error:', error);
+    console.error('unlock-deepdive error:', error);
     return NextResponse.json(
-      { error: 'Failed to unlock report' },
+      { error: 'Failed to unlock deep dive' },
       { status: 500 }
     );
   }

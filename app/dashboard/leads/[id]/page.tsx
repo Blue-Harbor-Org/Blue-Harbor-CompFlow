@@ -8,7 +8,9 @@ import UnlockButton from '@/components/admin/UnlockButton';
 import CopyButton from '@/components/admin/CopyButton';
 import GenerateReportButton from '@/components/admin/GenerateReportButton';
 import LeadIndustryRegenerate from '@/components/admin/LeadIndustryRegenerate';
+import DeepDivePanel from '@/components/admin/DeepDivePanel';
 import Link from 'next/link';
+import type { Report } from '@/types/report';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -77,7 +79,15 @@ export default async function LeadDetailPage({ params }: Props) {
     .from('reports')
     .select('*')
     .eq('lead_id', id)
-    .single();
+    .eq('report_type', 'standard')
+    .maybeSingle();
+
+  const { data: deepReport } = await admin
+    .from('reports')
+    .select('*')
+    .eq('lead_id', id)
+    .eq('report_type', 'deepdive')
+    .maybeSingle();
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const teaserUrl = `${appUrl}/report/${lead.report_token}`;
@@ -282,6 +292,15 @@ export default async function LeadDetailPage({ params }: Props) {
                   </div>
                 )}
               </div>
+
+              <DeepDivePanel
+                leadId={lead.id}
+                reportToken={lead.report_token}
+                appUrl={appUrl}
+                deepdiveStatus={(lead as { deepdive_status?: string | null }).deepdive_status ?? null}
+                deepdiveViewedAt={(lead as { deepdive_viewed_at?: string | null }).deepdive_viewed_at ?? null}
+                deepReport={(deepReport ?? null) as Report | null}
+              />
 
               {/* Quick actions */}
               <div className="card p-6">
