@@ -35,8 +35,8 @@ export default function NotesField({ leadId, initialNotes }: Props) {
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         onBlur={handleBlur}
-        rows={5}
-        className="w-full px-4 py-3 rounded-lg text-sm outline-none resize-none"
+        rows={6}
+        className="min-h-[120px] w-full resize-none rounded-lg px-4 py-3 text-base outline-none md:text-sm"
         style={{
           background: 'rgba(13,31,60,0.8)',
           border: '1px solid var(--border)',

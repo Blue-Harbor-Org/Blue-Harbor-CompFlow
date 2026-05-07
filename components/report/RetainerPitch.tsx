@@ -58,11 +58,11 @@ export default function RetainerPitch({ calendlyUrl, ctaHeadline, ctaBody }: Pro
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
+      <div className="adv-grid mb-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
         {services.map((service) => (
           <div
             key={service.title}
-            className="card p-6"
+            className="adv-card card p-5 md:p-6"
             style={{ borderColor: 'var(--border-gold)' }}
           >
             <div className="text-2xl mb-3" style={{ color: 'var(--gold)' }}>
@@ -94,16 +94,16 @@ export default function RetainerPitch({ calendlyUrl, ctaHeadline, ctaBody }: Pro
         Most clients see results within 60–90 days.
       </p>
 
-      <div className="text-center">
+      <div className="cta-buttons flex flex-col items-stretch gap-3 md:items-center">
         <a
           href={calendlyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-primary px-10 py-4 text-base inline-block"
+          className="btn-primary inline-block min-h-14 w-full px-8 py-4 text-center text-base md:w-auto md:px-10"
         >
           Let&apos;s Talk — Book Your Strategy Call →
         </a>
-        <p className="mt-3 text-sm" style={{ color: 'var(--muted)' }}>
+        <p className="mt-1 text-center text-sm md:mt-3" style={{ color: 'var(--muted)' }}>
           Free 30-minute call. No pressure. Just strategy.
         </p>
       </div>

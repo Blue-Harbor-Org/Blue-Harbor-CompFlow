@@ -1,2 +1,3 @@
--- Run once on your Supabase project (SQL Editor)
-alter table leads add column industry text not null default 'general';
+-- Run once in Supabase → SQL Editor (Dashboard)
+alter table public.leads
+  add column if not exists industry text not null default 'general';

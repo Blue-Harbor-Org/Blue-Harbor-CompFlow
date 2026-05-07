@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function FinalCTA() {
   return (
     <section
-      className="relative overflow-hidden px-6 py-24 md:py-32 text-center"
+      className="section-padding relative overflow-hidden py-16 text-center md:py-32"
       style={{ background: 'var(--navy)' }}
     >
       <div
@@ -27,7 +27,7 @@ export default function FinalCTA() {
         </p>
         <Link
           href="/get-my-report"
-          className="btn-primary px-10 py-4 text-base inline-block"
+          className="btn-primary inline-block w-full px-10 py-4 text-base sm:w-auto"
         >
           Get Your Free Competitive Analysis →
         </Link>

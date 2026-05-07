@@ -18,7 +18,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section className="px-6 py-20 md:py-28" style={{ background: 'var(--navy2)' }}>
+    <section className="section-padding py-16 md:py-28" style={{ background: 'var(--navy2)' }}>
       <div className="max-w-5xl mx-auto">
         <div className="gold-divider mb-16" />
 
@@ -32,7 +32,7 @@ export default function HowItWorks() {
           <p style={{ color: 'var(--muted)' }}>Three steps. Under two minutes. Real intelligence.</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
           {steps.map((step) => (
             <div key={step.number} className="card p-8 relative">
               <div

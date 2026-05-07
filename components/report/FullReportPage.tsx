@@ -30,10 +30,13 @@ export default function FullReportPage({ lead, report }: Props) {
     : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
   return (
-    <div style={{ background: 'var(--navy)', minHeight: '100vh', paddingBottom: '80px' }}>
+    <div
+      className="pb-32 md:pb-28"
+      style={{ background: 'var(--navy)', minHeight: '100vh' }}
+    >
       {/* Nav */}
       <nav
-        className="sticky top-0 z-40 px-6 py-4 flex items-center justify-between"
+        className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 px-4 py-3 md:px-6 md:py-4"
         style={{
           background: 'rgba(5,12,26,0.95)',
           borderBottom: '1px solid var(--border)',
@@ -55,10 +58,10 @@ export default function FullReportPage({ lead, report }: Props) {
         </span>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-14">
+      <div className="mx-auto max-w-4xl px-4 py-10 md:px-6 md:py-14">
 
         {/* A. Hero */}
-        <section className="relative overflow-hidden rounded-xl p-10 mb-14 text-center"
+        <section className="relative mb-10 overflow-hidden rounded-xl p-6 text-center md:mb-14 md:p-10"
           style={{
             background: 'var(--navy2)',
             border: '1px solid var(--border-gold)',
@@ -82,24 +85,24 @@ export default function FullReportPage({ lead, report }: Props) {
               Competitive Strategy Report
             </div>
             <h1
-              className="font-heading text-4xl md:text-6xl mb-4 leading-tight"
+              className="hero-title font-heading mb-4 text-3xl leading-tight md:text-6xl"
               style={{ color: 'var(--light)' }}
             >
               {data.hero.headline}
             </h1>
-            <p className="text-lg mb-10 max-w-2xl mx-auto" style={{ color: 'var(--silver)' }}>
+            <p className="hero-subtitle mx-auto mb-10 max-w-2xl text-base md:text-lg" style={{ color: 'var(--silver)' }}>
               {data.hero.subheadline}
             </p>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="stat-grid mb-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
               {data.hero.stats.map((stat, i) => (
                 <div
                   key={i}
-                  className="card p-4 text-center"
+                  className="stat-box card p-3 text-center md:p-4"
                   style={{ background: 'rgba(10,30,60,0.5)' }}
                 >
                   <div
-                    className="font-heading text-3xl font-light mb-1"
+                    className="stat-val font-heading mb-1 text-2xl font-light md:text-3xl"
                     style={{ color: 'var(--gold)' }}
                   >
                     {stat.value}
@@ -312,9 +315,9 @@ export default function FullReportPage({ lead, report }: Props) {
             {data.roadmap.map((step, i) => (
               <div key={i} className="flex gap-6">
                 {/* Timeline */}
-                <div className="flex flex-col items-center flex-shrink-0">
+                <div className="flex flex-shrink-0 flex-col items-center">
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold md:h-10 md:w-10 md:text-sm"
                     style={{
                       background: 'var(--gold-dim)',
                       border: '2px solid var(--gold)',

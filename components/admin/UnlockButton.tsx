@@ -70,11 +70,12 @@ export default function UnlockButton({ leadId, email, businessName, onSuccess }:
         <div className="text-sm text-red-400 mb-2">{error}</div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
         <button
+          type="button"
           onClick={handleUnlock}
           disabled={loading}
-          className="btn-primary flex-1 py-3 text-sm disabled:opacity-60"
+          className="btn-primary min-h-14 w-full flex-1 py-4 text-sm disabled:opacity-60 md:min-h-0 md:py-3"
         >
           {loading
             ? 'Unlocking...'
@@ -84,8 +85,9 @@ export default function UnlockButton({ leadId, email, businessName, onSuccess }:
         </button>
         {confirming && (
           <button
+            type="button"
             onClick={() => setConfirming(false)}
-            className="px-4 py-3 rounded-lg text-sm"
+            className="min-h-12 w-full rounded-lg px-4 py-3 text-sm md:min-h-0 md:w-auto"
             style={{ color: 'var(--muted)', border: '1px solid var(--border)' }}
           >
             Cancel

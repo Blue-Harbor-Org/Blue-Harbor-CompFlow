@@ -64,9 +64,10 @@ export default function BlurLock({ token, calendlyUrl }: BlurLockProps) {
         </ul>
 
         <button
+          type="button"
           onClick={handleBookCall}
           disabled={clicked}
-          className="btn-primary w-full py-4 text-sm"
+          className="btn-primary min-h-[56px] w-full py-4 text-sm"
         >
           {clicked ? 'Opening calendar...' : 'Book Your Free Strategy Call to Unlock →'}
         </button>

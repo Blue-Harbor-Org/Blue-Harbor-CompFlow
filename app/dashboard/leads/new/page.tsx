@@ -12,10 +12,9 @@ export default async function NewLeadPage() {
     <div style={{ background: 'var(--navy)', minHeight: '100vh' }}>
       <AdminNav userEmail={user.email} />
 
-      <div className="ml-60">
-        {/* Top bar */}
+      <div className="admin-main">
         <div
-          className="sticky top-0 z-30 px-8 py-5 flex items-center gap-4"
+          className="sticky top-0 z-30 flex items-center gap-4 px-4 py-4 md:px-8 md:py-5"
           style={{
             background: 'rgba(5,12,26,0.95)',
             borderBottom: '1px solid var(--border)',
@@ -27,7 +26,7 @@ export default async function NewLeadPage() {
           </h1>
         </div>
 
-        <div className="p-8 max-w-2xl">
+        <div className="max-w-2xl p-4 md:p-8">
           <ManualLeadForm />
         </div>
       </div>

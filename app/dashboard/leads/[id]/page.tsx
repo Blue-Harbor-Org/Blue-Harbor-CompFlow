@@ -22,6 +22,40 @@ function formatDate(date: string | null) {
   });
 }
 
+function ContactFieldValue({ label, value }: { label: string; value: string }) {
+  const muted = <span className="text-sm break-words" style={{ color: 'var(--silver)' }}>{value}</span>;
+
+  if (!value || value === '—') return muted;
+
+  const linkClass =
+    'text-sm break-all underline-offset-2 hover:underline min-h-11 inline-flex items-center py-1';
+
+  if (label === 'Email') {
+    return (
+      <a href={`mailto:${encodeURIComponent(value)}`} className={linkClass} style={{ color: 'var(--silver)' }}>
+        {value}
+      </a>
+    );
+  }
+  if (label === 'Phone') {
+    return (
+      <a href={`tel:${value.replace(/\s/g, '')}`} className={linkClass} style={{ color: 'var(--silver)' }}>
+        {value}
+      </a>
+    );
+  }
+  if (label === 'Website' || label === 'Competitor URL') {
+    const href = value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={linkClass} style={{ color: 'var(--silver)' }}>
+        {value}
+      </a>
+    );
+  }
+
+  return muted;
+}
+
 export default async function LeadDetailPage({ params }: Props) {
   const { id } = await params;
 
@@ -53,10 +87,9 @@ export default async function LeadDetailPage({ params }: Props) {
     <div style={{ background: 'var(--navy)', minHeight: '100vh' }}>
       <AdminNav userEmail={user.email} />
 
-      <div className="ml-60">
-        {/* Top bar */}
+      <div className="admin-main">
         <div
-          className="sticky top-0 z-30 px-8 py-5 flex items-center gap-4"
+          className="sticky top-0 z-30 flex items-center gap-4 px-4 py-4 md:px-8 md:py-5"
           style={{
             background: 'rgba(5,12,26,0.95)',
             borderBottom: '1px solid var(--border)',
@@ -72,8 +105,8 @@ export default async function LeadDetailPage({ params }: Props) {
           </h1>
         </div>
 
-        <div className="p-8">
-          <div className="grid lg:grid-cols-2 gap-8 max-w-6xl">
+        <div className="p-4 md:p-8">
+          <div className="grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-2">
 
             {/* Left: Lead Info */}
             <div className="space-y-6">
@@ -93,13 +126,14 @@ export default async function LeadDetailPage({ params }: Props) {
                     { label: 'Source', value: lead.source },
                     { label: 'Created', value: formatDate(lead.created_at) ?? '—' },
                   ].map((field) => (
-                    <div key={field.label} className="grid grid-cols-2 gap-4">
+                    <div
+                      key={field.label}
+                      className="grid grid-cols-1 gap-1 sm:grid-cols-2 sm:items-start sm:gap-4"
+                    >
                       <span className="text-sm font-semibold" style={{ color: 'var(--muted)' }}>
                         {field.label}
                       </span>
-                      <span className="text-sm" style={{ color: 'var(--silver)' }}>
-                        {field.value}
-                      </span>
+                      <ContactFieldValue label={field.label} value={String(field.value)} />
                     </div>
                   ))}
                 </div>
@@ -262,7 +296,7 @@ export default async function LeadDetailPage({ params }: Props) {
                     href={teaserUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-ghost w-full py-2.5 text-sm text-center block"
+                    className="btn-ghost block min-h-12 w-full py-3 text-center text-sm"
                   >
                     View Teaser Page
                   </a>
@@ -270,7 +304,7 @@ export default async function LeadDetailPage({ params }: Props) {
                     href={fullUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-ghost w-full py-2.5 text-sm text-center block"
+                    className="btn-ghost block min-h-12 w-full py-3 text-center text-sm"
                   >
                     Preview Full Report (Admin)
                   </a>

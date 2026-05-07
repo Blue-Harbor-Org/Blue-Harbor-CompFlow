@@ -3,7 +3,7 @@ import Link from 'next/link';
 export default function HeroSection() {
   return (
     <section
-      className="relative overflow-hidden px-6 py-24 md:py-36 text-center"
+      className="section-padding relative overflow-hidden py-16 text-center md:py-36"
       style={{ background: 'var(--navy)' }}
     >
       {/* Radial glow */}
@@ -29,7 +29,7 @@ export default function HeroSection() {
         </div>
 
         <h1
-          className="font-heading text-5xl md:text-7xl leading-tight mb-6"
+          className="font-heading mb-6 text-4xl leading-tight md:text-7xl"
           style={{ color: 'var(--light)' }}
         >
           Find Out Exactly Where You&apos;re{' '}
@@ -44,10 +44,10 @@ export default function HeroSection() {
           AI-powered competitive audit — free. No catch. Just clarity.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+        <div className="flex flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
           <Link
             href="/get-my-report"
-            className="btn-primary px-8 py-4 text-base inline-block"
+            className="btn-primary inline-block w-full px-8 py-4 text-center text-base sm:w-auto"
           >
             Get My Free Report →
           </Link>

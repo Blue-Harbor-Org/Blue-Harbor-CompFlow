@@ -21,6 +21,7 @@
 }
 
 * {
+  -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
 
@@ -32,6 +33,12 @@ html, body {
 body {
   font-family: 'Syne', sans-serif;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -148,9 +155,10 @@ h1, h2, h3, h4, h5, h6 {
 ::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
-/* Input styles */
+/* Input styles — 16px avoids iOS zoom on focus */
 input, textarea, select {
   font-family: 'Syne', sans-serif;
+  font-size: 16px;
 }
 
 /* Pulse animation for loading */
@@ -171,4 +179,119 @@ input, textarea, select {
 
 .spin {
   animation: spin 1s linear infinite;
+}
+
+/* ─── Safe areas (iPhone notch / home indicator) ─── */
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ─── Admin shell (mobile bottom nav + top bar) ─── */
+.admin-main {
+  padding-top: 3.5rem;
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  .admin-main {
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-left: 15rem;
+  }
+}
+
+.admin-sidebar-desktop {
+  display: none;
+}
+@media (min-width: 768px) {
+  .admin-sidebar-desktop {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.admin-mobile-header {
+  display: flex;
+}
+@media (min-width: 768px) {
+  .admin-mobile-header {
+    display: none;
+  }
+}
+
+.admin-bottom-nav {
+  display: flex;
+}
+@media (min-width: 768px) {
+  .admin-bottom-nav {
+    display: none;
+  }
+}
+
+/* ─── Sticky report CTA ─── */
+.sticky-banner {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+@media (max-width: 767px) {
+  .sticky-banner {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  .sticky-banner .banner-text {
+    font-size: 13px;
+    text-align: center;
+  }
+  .sticky-banner .banner-btn {
+    width: 100%;
+    text-align: center;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ─── Mobile typography ─── */
+@media (max-width: 767px) {
+  h1 { font-size: clamp(28px, 8vw, 42px); }
+  h2 { font-size: clamp(22px, 6vw, 32px); }
+  h3 { font-size: clamp(18px, 5vw, 24px); }
+}
+
+/* ─── Touch-friendly targets (mobile) ─── */
+@media (max-width: 767px) {
+  .tap-row a,
+  .tap-row button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* ─── Testimonials horizontal scroll ─── */
+.testimonial-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+}
+.testimonial-track::-webkit-scrollbar { display: none; }
+.testimonial-card {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+  width: min(85vw, 340px);
+}
+
+/* ─── Section padding ─── */
+.section-padding {
+  padding: clamp(48px, 8vw, 100px) clamp(20px, 5vw, 80px);
+}
+
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
 }

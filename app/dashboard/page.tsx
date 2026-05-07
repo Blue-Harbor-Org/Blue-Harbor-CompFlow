@@ -26,10 +26,10 @@ export default async function DashboardPage() {
     <div style={{ background: 'var(--navy)', minHeight: '100vh' }}>
       <AdminNav userEmail={user.email} />
 
-      <div className="ml-60">
+      <div className="admin-main">
         {/* Top bar */}
         <div
-          className="sticky top-0 z-30 px-8 py-5 flex items-center justify-between"
+          className="sticky top-0 z-30 flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-8 md:py-5"
           style={{
             background: 'rgba(5,12,26,0.95)',
             borderBottom: '1px solid var(--border)',
@@ -47,12 +47,15 @@ export default async function DashboardPage() {
               {leads?.length ?? 0} total leads
             </p>
           </div>
-          <Link href="/dashboard/leads/new" className="btn-primary px-4 py-2 text-sm">
+          <Link
+            href="/dashboard/leads/new"
+            className="btn-primary w-full px-4 py-3 text-center text-sm sm:w-auto sm:py-2"
+          >
             + Add Lead
           </Link>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 md:p-8">
           <PipelineBoard initialLeads={(leads ?? []) as Lead[]} />
         </div>
       </div>

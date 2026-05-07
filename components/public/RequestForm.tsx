@@ -77,10 +77,18 @@ export default function RequestForm() {
     color: 'var(--light)',
   };
 
-  function handleFocus(e: React.FocusEvent<HTMLInputElement>) {
-    e.target.style.borderColor = 'var(--border-gold)';
+  function scrollFieldIntoView(el: HTMLElement) {
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
   }
-  function handleBlur(e: React.FocusEvent<HTMLInputElement>) {
+
+  function handleFieldFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
+    e.target.style.borderColor = 'var(--border-gold)';
+    scrollFieldIntoView(e.target);
+  }
+
+  function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
     e.target.style.borderColor = 'var(--border)';
   }
 
@@ -104,7 +112,7 @@ export default function RequestForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card p-8 md:p-10 max-w-lg mx-auto">
+    <form onSubmit={handleSubmit} className="card mx-auto max-w-lg p-6 md:p-10">
       <div className="space-y-5">
         <div className="grid md:grid-cols-2 gap-5">
           <div>
@@ -113,12 +121,15 @@ export default function RequestForm() {
             </label>
             <input
               type="text"
+              name="contact_name"
+              autoComplete="name"
+              autoCapitalize="words"
               required
               value={form.contact_name}
               onChange={(e) => update('contact_name', e.target.value)}
               className={inputClass}
               style={inputStyle}
-              onFocus={handleFocus}
+              onFocus={handleFieldFocus}
               onBlur={handleBlur}
               placeholder="Jane Smith"
             />
@@ -129,12 +140,15 @@ export default function RequestForm() {
             </label>
             <input
               type="text"
+              name="business_name"
+              autoComplete="organization"
+              autoCapitalize="words"
               required
               value={form.business_name}
               onChange={(e) => update('business_name', e.target.value)}
               className={inputClass}
               style={inputStyle}
-              onFocus={handleFocus}
+              onFocus={handleFieldFocus}
               onBlur={handleBlur}
               placeholder="Acme Co."
             />
@@ -147,12 +161,17 @@ export default function RequestForm() {
           </label>
           <input
             type="url"
+            name="website_url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             required
             value={form.website_url}
             onChange={(e) => update('website_url', e.target.value)}
             className={inputClass}
             style={inputStyle}
-            onFocus={handleFocus}
+            onFocus={handleFieldFocus}
             onBlur={handleBlur}
             placeholder="https://yourbusiness.com"
           />
@@ -164,12 +183,17 @@ export default function RequestForm() {
           </label>
           <input
             type="url"
+            name="competitor_url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             required
             value={form.competitor_url}
             onChange={(e) => update('competitor_url', e.target.value)}
             className={inputClass}
             style={inputStyle}
-            onFocus={handleFocus}
+            onFocus={handleFieldFocus}
             onBlur={handleBlur}
             placeholder="https://competitor.com"
           />
@@ -181,12 +205,17 @@ export default function RequestForm() {
           </label>
           <input
             type="email"
+            name="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             required
             value={form.email}
             onChange={(e) => update('email', e.target.value)}
             className={inputClass}
             style={inputStyle}
-            onFocus={handleFocus}
+            onFocus={handleFieldFocus}
             onBlur={handleBlur}
             placeholder="jane@yourbusiness.com"
           />
@@ -199,11 +228,14 @@ export default function RequestForm() {
           </label>
           <input
             type="tel"
+            name="phone"
+            inputMode="tel"
+            autoComplete="tel"
             value={form.phone}
             onChange={(e) => update('phone', e.target.value)}
             className={inputClass}
             style={inputStyle}
-            onFocus={handleFocus}
+            onFocus={handleFieldFocus}
             onBlur={handleBlur}
             placeholder="Helpful for scheduling your strategy call"
           />
@@ -223,6 +255,8 @@ export default function RequestForm() {
             onChange={(e) => update('industry', e.target.value)}
             className={inputClass}
             style={inputStyle}
+            onFocus={handleFieldFocus}
+            onBlur={handleBlur}
           >
             {VERTICAL_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -250,7 +284,7 @@ export default function RequestForm() {
 
         <button
           type="submit"
-          className="btn-primary w-full py-4 text-base"
+          className="btn-primary min-h-14 w-full py-4 text-base"
         >
           Analyze My Competition →
         </button>

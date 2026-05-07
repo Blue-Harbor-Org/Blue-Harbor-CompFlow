@@ -79,13 +79,21 @@ export default function LeadCard({ lead, onUnlock, onRefresh }: Props) {
         <div className="text-xs" style={{ color: 'var(--silver)' }}>
           {lead.contact_name}
         </div>
-        <div className="text-xs" style={{ color: 'var(--muted)' }}>
+        <a
+          href={`mailto:${encodeURIComponent(lead.email)}`}
+          className="block min-h-[44px] py-2 text-xs underline-offset-2 hover:underline"
+          style={{ color: 'var(--muted)' }}
+        >
           {lead.email}
-        </div>
+        </a>
         {lead.phone && (
-          <div className="text-xs" style={{ color: 'var(--muted)' }}>
+          <a
+            href={`tel:${lead.phone.replace(/\s/g, '')}`}
+            className="block min-h-[44px] py-2 text-xs underline-offset-2 hover:underline"
+            style={{ color: 'var(--muted)' }}
+          >
             {lead.phone}
-          </div>
+          </a>
         )}
       </div>
 
@@ -125,18 +133,19 @@ export default function LeadCard({ lead, onUnlock, onRefresh }: Props) {
       )}
 
       {/* Actions */}
-      <div className="flex gap-1 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="tap-row flex gap-1 pt-1" style={{ borderTop: '1px solid var(--border)' }}>
         <Link
           href={`/dashboard/leads/${lead.id}`}
-          className="flex-1 text-center py-1.5 rounded text-xs font-medium transition-colors"
+          className="flex-1 rounded py-3 text-center text-xs font-medium transition-colors md:py-1.5"
           style={{ color: 'var(--silver)', background: 'rgba(143,168,200,0.08)' }}
         >
           👁 View
         </Link>
         <button
+          type="button"
           onClick={handleUnlock}
           disabled={unlocking}
-          className="flex-1 py-1.5 rounded text-xs font-medium transition-colors"
+          className="flex-1 rounded py-3 text-xs font-medium transition-colors md:py-1.5"
           style={{
             color: 'var(--gold)',
             background: 'var(--gold-dim)',
@@ -147,7 +156,7 @@ export default function LeadCard({ lead, onUnlock, onRefresh }: Props) {
         </button>
         <Link
           href={`/dashboard/leads/${lead.id}`}
-          className="flex-1 text-center py-1.5 rounded text-xs font-medium transition-colors"
+          className="flex-1 rounded py-3 text-center text-xs font-medium transition-colors md:py-1.5"
           style={{ color: 'var(--muted)', background: 'rgba(90,114,148,0.1)' }}
         >
           ✏ Edit

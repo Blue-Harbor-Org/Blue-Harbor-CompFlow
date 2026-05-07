@@ -29,7 +29,7 @@ export default function TeaserPage({ lead, report }: TeaserPageProps) {
     <div style={{ background: 'var(--navy)', minHeight: '100vh' }}>
       {/* Nav */}
       <nav
-        className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between"
+        className="sticky top-0 z-50 flex flex-col gap-2 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:px-6 md:py-4"
         style={{
           background: 'rgba(5,12,26,0.92)',
           borderBottom: '1px solid var(--border)',
@@ -39,12 +39,12 @@ export default function TeaserPage({ lead, report }: TeaserPageProps) {
         <Link href="/" className="font-heading text-xl" style={{ color: 'var(--gold)' }}>
           Blue Harbor
         </Link>
-        <div className="text-xs" style={{ color: 'var(--muted)' }}>
+        <div className="text-xs sm:ml-auto" style={{ color: 'var(--muted)' }}>
           Confidential Report
         </div>
       </nav>
 
-      <div className="max-w-3xl mx-auto px-6 py-14">
+      <div className="mx-auto max-w-3xl px-4 py-10 md:px-6 md:py-14">
         {/* Header */}
         <div className="mb-10">
           <div
@@ -128,7 +128,7 @@ export default function TeaserPage({ lead, report }: TeaserPageProps) {
               </div>
 
               {/* Mock advantages */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[1,2,3,4].map((i) => (
                   <div key={i} className="card p-4">
                     <div className="w-8 h-8 rounded mb-2" style={{ background: 'var(--gold-dim)' }} />

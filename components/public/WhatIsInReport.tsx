@@ -41,7 +41,7 @@ const features = [
 
 export default function WhatIsInReport() {
   return (
-    <section className="px-6 py-20 md:py-28" style={{ background: 'var(--navy)' }}>
+    <section className="section-padding py-16 md:py-28" style={{ background: 'var(--navy)' }}>
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <h2
@@ -55,7 +55,7 @@ export default function WhatIsInReport() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
             <div
               key={f.title}

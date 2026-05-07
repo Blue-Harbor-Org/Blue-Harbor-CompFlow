@@ -1,3 +1,5 @@
+'use client';
+
 const testimonials = [
   {
     quote:
@@ -25,66 +27,68 @@ const testimonials = [
   },
 ];
 
+function TestimonialCard({ t }: { t: (typeof testimonials)[0] }) {
+  return (
+    <div className="testimonial-card card flex flex-col p-7">
+      <div className="mb-5 flex gap-1">
+        {[...Array(5)].map((_, i) => (
+          <span key={i} style={{ color: 'var(--gold)' }}>
+            ★
+          </span>
+        ))}
+      </div>
+      <p className="mb-6 flex-1 text-sm italic leading-relaxed" style={{ color: 'var(--silver)' }}>
+        &ldquo;{t.quote}&rdquo;
+      </p>
+      <div className="mt-auto flex items-center gap-3">
+        <div
+          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
+          style={{
+            background: 'var(--gold-dim)',
+            border: '1px solid var(--border-gold)',
+            color: 'var(--gold)',
+          }}
+        >
+          {t.initials}
+        </div>
+        <div>
+          <div className="text-sm font-semibold" style={{ color: 'var(--light)' }}>
+            {t.name}
+          </div>
+          <div className="text-xs" style={{ color: 'var(--muted)' }}>
+            {t.title} · {t.company}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TestimonialsSection() {
   return (
-    <section className="px-6 py-20 md:py-28" style={{ background: 'var(--navy2)' }}>
-      <div className="max-w-5xl mx-auto">
-        <div className="gold-divider mb-16" />
+    <section className="section-padding py-16 md:py-28" style={{ background: 'var(--navy2)' }}>
+      <div className="mx-auto max-w-5xl">
+        <div className="gold-divider mb-12 md:mb-16" />
 
-        <div className="text-center mb-16">
-          <h2
-            className="font-heading text-4xl md:text-5xl mb-4"
-            style={{ color: 'var(--light)' }}
-          >
+        <div className="mb-12 text-center md:mb-16">
+          <h2 className="font-heading mb-4 text-3xl md:text-5xl" style={{ color: 'var(--light)' }}>
             What Clients Say
           </h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="testimonial-track md:hidden">
           {testimonials.map((t) => (
-            <div key={t.name} className="card p-7 flex flex-col">
-              {/* Stars */}
-              <div className="flex gap-1 mb-5">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} style={{ color: 'var(--gold)' }}>★</span>
-                ))}
-              </div>
-
-              <p
-                className="text-sm leading-relaxed flex-1 mb-6 italic"
-                style={{ color: 'var(--silver)' }}
-              >
-                &ldquo;{t.quote}&rdquo;
-              </p>
-
-              <div className="flex items-center gap-3 mt-auto">
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                  style={{
-                    background: 'var(--gold-dim)',
-                    border: '1px solid var(--border-gold)',
-                    color: 'var(--gold)',
-                  }}
-                >
-                  {t.initials}
-                </div>
-                <div>
-                  <div
-                    className="text-sm font-semibold"
-                    style={{ color: 'var(--light)' }}
-                  >
-                    {t.name}
-                  </div>
-                  <div className="text-xs" style={{ color: 'var(--muted)' }}>
-                    {t.title} · {t.company}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TestimonialCard key={t.name} t={t} />
           ))}
         </div>
 
-        <div className="gold-divider mt-16" />
+        <div className="hidden gap-6 md:grid md:grid-cols-3">
+          {testimonials.map((t) => (
+            <TestimonialCard key={t.name} t={t} />
+          ))}
+        </div>
+
+        <div className="gold-divider mt-12 md:mt-16" />
       </div>
     </section>
   );

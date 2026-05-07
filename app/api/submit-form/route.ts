@@ -58,23 +58,37 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Insert lead
-    const { data: lead, error } = await supabase
-      .from('leads')
-      .insert({
-        contact_name: contact_name.trim(),
-        business_name: business_name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone?.trim() || null,
-        website_url: website_url.trim(),
-        competitor_url: competitor_url.trim(),
-        competitor_name: competitor_name?.trim() || null,
-        notes: notes?.trim() || null,
-        source,
-        industry: industryId,
-      })
-      .select()
-      .single();
+    const row = {
+      contact_name: contact_name.trim(),
+      business_name: business_name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone?.trim() || null,
+      website_url: website_url.trim(),
+      competitor_url: competitor_url.trim(),
+      competitor_name: competitor_name?.trim() || null,
+      notes: notes?.trim() || null,
+      source,
+      industry: industryId,
+    };
+
+    let { data: lead, error } = await supabase.from('leads').insert(row).select().single();
+
+    const industryColumnMissing =
+      error &&
+      (error.code === 'PGRST204' ||
+        String(error.message ?? '').includes("'industry'"));
+
+    if (industryColumnMissing) {
+      const { industry: _drop, ...withoutIndustry } = row;
+      const retry = await supabase.from('leads').insert(withoutIndustry).select().single();
+      lead = retry.data;
+      error = retry.error;
+      if (!error) {
+        console.warn(
+          '[submit-form] leads.industry column missing — run sql/add-industry-column.sql in Supabase SQL Editor. Lead saved without vertical.'
+        );
+      }
+    }
 
     if (error || !lead) {
       console.error('Insert lead error:', error);
