@@ -2,8 +2,11 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase';
 import FullReportPage from '@/components/report/FullReportPage';
+import { resolveLeadByDeepDivePathToken } from '@/lib/resolveLeadByDeepDivePath';
 import type { Lead } from '@/types/lead';
 import type { Report } from '@/types/report';
+
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ token: string }>;
@@ -93,19 +96,22 @@ function ReadyLocked() {
 }
 
 export default async function DeepDivePage({ params, searchParams }: Props) {
-  const { token } = await params;
+  const { token: rawToken } = await params;
   const { admin } = await searchParams;
   const isAdmin = admin === 'true';
 
   const supabase = createAdminClient();
 
-  const { data: lead, error: leadErr } = await supabase
-    .from('leads')
-    .select('*')
-    .eq('report_token', token)
-    .maybeSingle();
+  const { lead, errorMessage } = await resolveLeadByDeepDivePathToken(
+    supabase,
+    rawToken
+  );
 
-  if (leadErr || !lead) {
+  if (errorMessage) {
+    console.error('[deepdive] lead resolve:', errorMessage);
+  }
+
+  if (!lead) {
     notFound();
   }
 

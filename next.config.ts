@@ -7,16 +7,22 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     skipWaiting: true,
+    // Do not cache arbitrary navigations — a catch-all was serving stale 404s for /report/.../deepdive.
     runtimeCaching: [
       {
-        urlPattern: /^https?:\/\/.*/i,
-        handler: "NetworkFirst",
+        urlPattern: /\/_next\/static\/.*/i,
+        handler: "CacheFirst",
         options: {
-          cacheName: "blueharbor-cache",
-          expiration: {
-            maxEntries: 200,
-            maxAgeSeconds: 24 * 60 * 60,
-          },
+          cacheName: "next-static",
+          expiration: { maxEntries: 64, maxAgeSeconds: 365 * 24 * 60 * 60 },
+        },
+      },
+      {
+        urlPattern: /\/_next\/image\?.*/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "next-image",
+          expiration: { maxEntries: 64, maxAgeSeconds: 24 * 60 * 60 },
         },
       },
     ],
