@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { createBrowserClient } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { LeadStatus } from '@/types/lead';
 
 const statuses: { value: LeadStatus; label: string; color: string }[] = [
@@ -21,19 +21,46 @@ interface Props {
 }
 
 export default function StatusDropdown({ leadId, currentStatus, onChange }: Props) {
+  const router = useRouter();
   const [status, setStatus] = useState<LeadStatus>(currentStatus);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setStatus(currentStatus);
+  }, [currentStatus]);
 
   const current = statuses.find((s) => s.value === status);
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newStatus = e.target.value as LeadStatus;
+    const previous = status;
+    setError(null);
     setSaving(true);
-    const supabase = createBrowserClient();
-    await supabase.from('leads').update({ status: newStatus }).eq('id', leadId);
     setStatus(newStatus);
-    onChange?.(newStatus);
-    setSaving(false);
+
+    try {
+      const res = await fetch('/api/lead-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, status: newStatus }),
+      });
+      const data = (await res.json()) as { error?: string };
+
+      if (!res.ok) {
+        setStatus(previous);
+        setError(data.error ?? 'Could not update status');
+        return;
+      }
+
+      onChange?.(newStatus);
+      router.refresh();
+    } catch {
+      setStatus(previous);
+      setError('Network error — try again');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -57,6 +84,11 @@ export default function StatusDropdown({ leadId, currentStatus, onChange }: Prop
       <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--muted)' }}>
         ▾
       </div>
+      {error && (
+        <p className="mt-2 text-xs" style={{ color: 'var(--red)' }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }
