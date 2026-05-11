@@ -4,9 +4,11 @@ import { useState } from 'react';
 
 interface Props {
   leadId: string;
+  /** Called after the generate request returns (report may still be processing). */
+  onDone?: () => void;
 }
 
-export default function GenerateReportButton({ leadId }: Props) {
+export default function GenerateReportButton({ leadId, onDone }: Props) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -19,6 +21,7 @@ export default function GenerateReportButton({ leadId }: Props) {
     });
     setLoading(false);
     setDone(true);
+    onDone?.();
   }
 
   return (

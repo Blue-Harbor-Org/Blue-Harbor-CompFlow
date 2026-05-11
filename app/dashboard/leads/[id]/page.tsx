@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
-import AdminNav from '@/components/layout/AdminNav';
+import AdminShell from '@/components/admin/AdminShell';
 import StatusDropdown from '@/components/admin/StatusDropdown';
 import NotesField from '@/components/admin/NotesField';
 import UnlockButton from '@/components/admin/UnlockButton';
@@ -95,28 +95,17 @@ export default async function LeadDetailPage({ params }: Props) {
   const fullUrl = `${dashBase}/report/${lead.report_token}/full?admin=true`;
 
   return (
-    <div style={{ background: 'var(--navy)', minHeight: '100vh' }}>
-      <AdminNav userEmail={user.email} />
-
-      <div className="admin-main">
-        <div
-          className="sticky top-0 z-30 flex items-center gap-4 px-4 py-4 md:px-8 md:py-5"
-          style={{
-            background: 'var(--admin-sticky-bg)',
-            borderBottom: '1px solid var(--border)',
-            backdropFilter: 'blur(12px)',
-          }}
-        >
-          <Link href="/dashboard" className="text-sm" style={{ color: 'var(--muted)' }}>
-            ← Pipeline
-          </Link>
-          <span style={{ color: 'var(--border)' }}>·</span>
-          <h1 className="font-heading text-xl" style={{ color: 'var(--light)' }}>
-            {lead.business_name}
-          </h1>
-        </div>
-
-        <div className="p-4 md:p-8">
+    <AdminShell
+      userEmail={user.email}
+      title={lead.business_name}
+      subtitle="Lead detail"
+      headerActions={
+        <Link href="/dashboard" className="btn-ghost min-h-[44px] px-4 py-2 text-sm">
+          ← Pipeline
+        </Link>
+      }
+    >
+      <div className="p-4 md:p-8">
           <div className="grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-2">
 
             {/* Left: Lead Info */}
@@ -330,7 +319,7 @@ export default async function LeadDetailPage({ params }: Props) {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </AdminShell>
   );
 }
+

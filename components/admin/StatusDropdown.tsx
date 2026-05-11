@@ -18,9 +18,16 @@ interface Props {
   leadId: string;
   currentStatus: LeadStatus;
   onChange?: (status: LeadStatus) => void;
+  /** When false, skip Next.js router.refresh() after successful save (e.g. slideout pipeline). Default true. */
+  refreshAfterChange?: boolean;
 }
 
-export default function StatusDropdown({ leadId, currentStatus, onChange }: Props) {
+export default function StatusDropdown({
+  leadId,
+  currentStatus,
+  onChange,
+  refreshAfterChange = true,
+}: Props) {
   const router = useRouter();
   const [status, setStatus] = useState<LeadStatus>(currentStatus);
   const [saving, setSaving] = useState(false);
@@ -54,7 +61,7 @@ export default function StatusDropdown({ leadId, currentStatus, onChange }: Prop
       }
 
       onChange?.(newStatus);
-      router.refresh();
+      if (refreshAfterChange) router.refresh();
     } catch {
       setStatus(previous);
       setError('Network error — try again');

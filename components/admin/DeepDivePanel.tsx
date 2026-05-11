@@ -10,6 +10,8 @@ interface Props {
   deepdiveStatus: string | null;
   deepdiveViewedAt: string | null;
   deepReport: Report | null;
+  /** Called after generate/unlock so parent can refresh without full route reload */
+  onAfterMutation?: () => void;
 }
 
 function clientBaseUrl(): string {
@@ -22,6 +24,7 @@ export default function DeepDivePanel({
   deepdiveStatus,
   deepdiveViewedAt,
   deepReport,
+  onAfterMutation,
 }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -40,6 +43,7 @@ export default function DeepDivePanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId, force }),
       });
+      onAfterMutation?.();
       startTransition(() => router.refresh());
     } finally {
       setGenerating(false);
@@ -54,6 +58,7 @@ export default function DeepDivePanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId }),
       });
+      onAfterMutation?.();
       startTransition(() => router.refresh());
     } finally {
       setUnlocking(false);
