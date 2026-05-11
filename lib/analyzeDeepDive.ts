@@ -14,6 +14,12 @@ CRITICAL OUTPUT RULES:
 - deepDive.seo.bullets: 4-7 punchy bullets
 - Ground claims in provided intel; if intel says API not configured, say so honestly in summaries
 
+CRITICAL JSON RULES:
+- Never use double quotes inside string values — use single quotes or rephrase
+- Never include newlines inside string values — use spaces instead
+- Never include special characters: tab, backslash, or control characters in strings
+- Every string value must be on one line
+
 CRITICAL — always use EXACTLY these field names in your JSON, no variations:
 
 topFindings items: { title, teaser, fullDescription, severity }
@@ -65,8 +71,8 @@ PRIORITIES: ${vertical.contextHints}
 Return ONLY the JSON object.`;
 }
 
-/** Strip fences, parse JSON, then salvage truncated output by closing brackets/braces. */
-function safeParseJSON(raw: string): unknown {
+/** Strip fences, parse, sanitize common malformed JSON, then close truncated structures. */
+function extractAndParseJSON(raw: string): unknown {
   let cleaned = raw
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
@@ -76,20 +82,35 @@ function safeParseJSON(raw: string): unknown {
   try {
     return JSON.parse(cleaned);
   } catch {
-    console.log('[Claude] JSON truncated, attempting repair...');
-    const openBraces =
-      (cleaned.match(/{/g) || []).length - (cleaned.match(/}/g) || []).length;
-    const openBrackets =
-      (cleaned.match(/\[/g) || []).length - (cleaned.match(/\]/g) || []).length;
-    let repaired = cleaned;
-    for (let i = 0; i < openBrackets; i++) repaired += ']';
-    for (let i = 0; i < openBraces; i++) repaired += '}';
-    try {
-      return JSON.parse(repaired);
-    } catch (repairErr) {
-      console.error('[Claude] JSON repair failed:', repairErr);
-      throw repairErr;
-    }
+    console.log('[Claude] Direct parse failed, trying sanitization...');
+  }
+
+  cleaned = cleaned.replace(/[\x00-\x1F\x7F]/g, ' ');
+  cleaned = cleaned.replace(/,(\s*[}\]])/g, '$1');
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    console.log('[Claude] Sanitized parse failed, trying repair...');
+  }
+
+  const openBraces =
+    (cleaned.match(/{/g) || []).length - (cleaned.match(/}/g) || []).length;
+  const openBrackets =
+    (cleaned.match(/\[/g) || []).length - (cleaned.match(/\]/g) || []).length;
+  let repaired = cleaned.trimEnd();
+  repaired = repaired.replace(/,\s*$/, '');
+  for (let i = 0; i < openBrackets; i++) repaired += ']';
+  for (let i = 0; i < openBraces; i++) repaired += '}';
+
+  try {
+    return JSON.parse(repaired);
+  } catch (e3) {
+    console.error('[Claude] All parse attempts failed. Raw snippet around error:');
+    console.error(cleaned.slice(4800, 5000));
+    throw new Error(
+      `Deep dive JSON parse failed: ${e3 instanceof Error ? e3.message : String(e3)}`
+    );
   }
 }
 
@@ -123,7 +144,7 @@ ${competitorContent}`;
 
   const response = await client.messages.create({
     model: anthropicModelId,
-    max_tokens: 8000,
+    max_tokens: 12000,
     system: buildDeepSystem(industry),
     messages: [{ role: 'user', content: userPrompt }],
   });
@@ -135,7 +156,7 @@ ${competitorContent}`;
 
   let parsed: ReportData;
   try {
-    parsed = safeParseJSON(rawText) as ReportData;
+    parsed = extractAndParseJSON(rawText) as ReportData;
   } catch (err) {
     console.error('[analyzeDeepDive] JSON parse failed. Raw text length:', rawText.length, 'Stop reason:', response.stop_reason);
     console.error('[analyzeDeepDive] Raw text tail:', rawText.slice(-500));
