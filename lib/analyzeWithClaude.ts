@@ -24,6 +24,18 @@ CRITICAL OUTPUT RULES:
 - threats must have 2-4 items (honest about where competitor is stronger)
 - roadmap must have 6 steps
 
+CRITICAL — always use EXACTLY these field names in your JSON, no variations:
+
+topFindings items: { title, teaser, fullDescription, severity }
+comparison items: { category, competitor, client, advantage, advantageNote }
+advantages items: { title, description, badge }
+opportunities items: { title, description, priority }
+threats items: { title, description }
+roadmap items: { step, phase, title, description, tags }
+
+Never use: finding, detail, name, body, heading, dimension, winner, result, timeframe, or any other field name.
+The frontend reads these exact keys. Any deviation causes blank UI.
+
 JSON SCHEMA (must match exactly):
 {
   "meta": { "clientName": string, "clientUrl": string, "competitorName": string, "competitorUrl": string, "generatedAt": string },

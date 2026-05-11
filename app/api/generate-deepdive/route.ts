@@ -74,7 +74,27 @@ export async function POST(req: NextRequest) {
       .eq('id', leadId);
 
     try {
-      const reportData = await generateDeepDiveReport(leadRow, modelId);
+      const { data: leadFresh, error: freshErr } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+
+      if (freshErr) {
+        console.error('[GenerateDeepDive] fresh lead fetch:', freshErr.message);
+      }
+
+      const leadForGen = (leadFresh ?? leadRow) as Lead;
+
+      console.log('[GenerateDeepDive] lead config:', {
+        report_tier: leadForGen.report_tier,
+        enable_seo_data: leadForGen.enable_seo_data,
+        enable_google_reviews: leadForGen.enable_google_reviews,
+        enable_multi_page: leadForGen.enable_multi_page,
+        enable_admin_intel: leadForGen.enable_admin_intel,
+      });
+
+      const reportData = await generateDeepDiveReport(leadForGen, modelId);
       const token =
         existingDeep?.deepdive_token ?? randomBytes(32).toString('hex');
 

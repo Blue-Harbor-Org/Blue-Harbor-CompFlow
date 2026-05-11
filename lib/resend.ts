@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import type { ReportData } from '@/types/report';
 import type { Lead } from '@/types/lead';
+import { getFindingTitle } from '@/lib/reportUtils';
 
 function getResend() {
   return new Resend(process.env.RESEND_API_KEY);
@@ -64,7 +65,7 @@ export async function sendReportReadyEmail(
 
     ${findings.map((f, i) => `
       <div class="finding ${i === 0 ? 'finding-high' : 'finding-med'}">
-        <div class="finding-title">${i === 0 ? '🔴' : '🟡'} ${f.title}</div>
+        <div class="finding-title">${i === 0 ? '🔴' : '🟡'} ${getFindingTitle(f)}</div>
       </div>
     `).join('')}
 

@@ -1,5 +1,18 @@
 import type { Lead } from '@/types/lead';
 import type { Report } from '@/types/report';
+import {
+  getAdvantageBadge,
+  getAdvantageDescription,
+  getAdvantageTitle,
+  getOpportunityDescription,
+  getOpportunityPriorityRaw,
+  getOpportunityTitle,
+  getRoadmapDescription,
+  getRoadmapPhase,
+  getRoadmapTitle,
+  getThreatDescription,
+  getThreatTitle,
+} from '@/lib/reportUtils';
 import FindingCard from './FindingCard';
 import ComparisonTable from './ComparisonTable';
 import RetainerPitch from './RetainerPitch';
@@ -191,7 +204,6 @@ export default function FullReportPage({
               rows={report?.report_data?.comparison ?? []}
               clientName={lead.business_name}
               competitorName={data.meta?.competitorName ?? 'Competitor'}
-              report={report}
             />
           </div>
         </section>
@@ -311,7 +323,7 @@ export default function FullReportPage({
                     className="font-heading text-xl"
                     style={{ color: 'var(--light)' }}
                   >
-                    {str(adv, 'title', 'name', 'heading')}
+                    {getAdvantageTitle(adv)}
                   </h3>
                   <span
                     className="text-xs font-semibold px-2 py-1 rounded flex-shrink-0 ml-2"
@@ -321,11 +333,11 @@ export default function FullReportPage({
                       color: 'var(--gold)',
                     }}
                   >
-                    {str(adv, 'badge', 'tag', 'label', 'category')}
+                    {getAdvantageBadge(adv)}
                   </span>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                  {str(adv, 'description', 'body', 'detail', 'summary', 'content')}
+                  {getAdvantageDescription(adv)}
                 </p>
               </div>
             ))}
@@ -347,7 +359,7 @@ export default function FullReportPage({
           </p>
           <div className="space-y-4">
             {(report?.report_data?.opportunities ?? []).map((opp, i) => {
-              const pKey = normalizeOpportunityPriority(opp?.priority);
+              const pKey = normalizeOpportunityPriority(getOpportunityPriorityRaw(opp));
               const pColors = priorityColors[pKey];
               return (
                 <div
@@ -363,7 +375,7 @@ export default function FullReportPage({
                       className="font-heading text-lg"
                       style={{ color: 'var(--light)' }}
                     >
-                      {str(opp, 'title', 'name', 'heading')}
+                      {getOpportunityTitle(opp)}
                     </h3>
                     <span
                       className="text-xs font-bold px-2 py-1 rounded flex-shrink-0 ml-2 uppercase"
@@ -377,7 +389,7 @@ export default function FullReportPage({
                     </span>
                   </div>
                   <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                    {str(opp, 'description', 'body', 'detail', 'summary', 'content')}
+                    {getOpportunityDescription(opp)}
                   </p>
                 </div>
               );
@@ -409,10 +421,10 @@ export default function FullReportPage({
                   className="font-heading text-lg mb-2"
                   style={{ color: 'var(--light)' }}
                 >
-                  {str(threat, 'title', 'name', 'heading')}
+                  {getThreatTitle(threat)}
                 </h3>
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                  {str(threat, 'description', 'body', 'detail', 'summary', 'content')}
+                  {getThreatDescription(threat)}
                 </p>
               </div>
             ))}
@@ -461,19 +473,19 @@ export default function FullReportPage({
                     className="text-xs font-semibold uppercase tracking-wider mb-1"
                     style={{ color: 'var(--gold)' }}
                   >
-                    {str(step, 'phase', 'stage', 'timeframe', 'period')}
+                    {getRoadmapPhase(step)}
                   </div>
                   <h3
                     className="font-heading text-xl mb-2"
                     style={{ color: 'var(--light)' }}
                   >
-                    {str(step, 'title', 'name', 'action', 'heading')}
+                    {getRoadmapTitle(step)}
                   </h3>
                   <p
                     className="text-sm leading-relaxed mb-3"
                     style={{ color: 'var(--silver)' }}
                   >
-                    {str(step, 'description', 'body', 'detail', 'summary', 'content')}
+                    {getRoadmapDescription(step)}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {(step?.tags ?? []).map((tag) => (

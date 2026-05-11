@@ -1,4 +1,9 @@
 import type { TopFinding } from '@/types/report';
+import {
+  getFindingBody,
+  getFindingSeverity,
+  getFindingTitle,
+} from '@/lib/reportUtils';
 
 interface FindingCardProps {
   finding: TopFinding;
@@ -17,26 +22,14 @@ type SeverityKey = keyof typeof severityConfig;
 function normalizeSeverity(raw: string | undefined): SeverityKey {
   const s = raw?.toLowerCase().trim() ?? '';
   if (s === 'high' || s === 'medium' || s === 'low') return s;
+  if (s === 'critical' || s === 'highest') return 'high';
   return 'medium';
 }
 
-// Normalise any field-name variant Claude might produce
-function resolveField(obj: Record<string, unknown>, ...keys: string[]): string {
-  for (const k of keys) {
-    const v = obj[k];
-    if (typeof v === 'string' && v.trim()) return v;
-  }
-  return '';
-}
-
 export default function FindingCard({ finding, index, showFull = false }: FindingCardProps) {
-  const sev = severityConfig[normalizeSeverity(finding?.severity)];
-  const raw = (finding ?? {}) as unknown as Record<string, unknown>;
-
-  const title = resolveField(raw, 'title', 'name', 'heading', 'finding');
-  const body = showFull
-    ? resolveField(raw, 'fullDescription', 'full_description', 'description', 'detail', 'body', 'teaser', 'summary')
-    : resolveField(raw, 'teaser', 'summary', 'description', 'fullDescription', 'full_description', 'body');
+  const sev = severityConfig[normalizeSeverity(getFindingSeverity(finding))];
+  const title = getFindingTitle(finding);
+  const body = getFindingBody(finding, showFull);
 
   return (
     <div

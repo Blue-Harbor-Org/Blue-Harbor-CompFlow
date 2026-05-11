@@ -31,4 +31,12 @@ export interface Lead {
   deepdive_status?: DeepDiveStatus | null;
   deepdive_unlocked_at?: string | null;
   deepdive_viewed_at?: string | null;
+  /** Report generation toggles (optional columns — may be absent until migrated) */
+  report_tier?: string | null;
+  enable_multi_page?: boolean | null;
+  enable_google_reviews?: boolean | null;
+  enable_seo_data?: boolean | null;
+  enable_admin_intel?: boolean | null;
+  client_intel?: string | null;
+  competitor_intel?: string | null;
 }

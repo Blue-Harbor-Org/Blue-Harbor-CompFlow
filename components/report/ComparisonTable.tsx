@@ -1,31 +1,25 @@
 import type { ComparisonRow, Report } from '@/types/report';
+import {
+  getComparisonAdvantage,
+  getComparisonCategory,
+  getComparisonClient,
+  getComparisonCompetitor,
+  getComparisonNote,
+} from '@/lib/reportUtils';
 
 interface Props {
   rows: ComparisonRow[];
   clientName: string;
   competitorName: string;
-  /** When set, logs raw `report_data` slices in the browser for field-name debugging */
+  /** When set, enables server-side debugging of report shape (optional) */
   report?: Report | null;
 }
 
-type LooseComparison = ComparisonRow & {
-  competitorValue?: string;
-  clientValue?: string;
-  note?: string;
-};
-
-function normalizeComparisonRow(row: ComparisonRow | undefined | null) {
-  const r = row as LooseComparison | null | undefined;
-  return {
-    category: r?.category ?? '',
-    competitor: r?.competitor ?? r?.competitorValue ?? '',
-    client: r?.client ?? r?.clientValue ?? '',
-    advantageNote: r?.advantageNote ?? r?.note ?? '',
-    advantage: r?.advantage,
-  };
-}
-
-function edgeLabel(advantage: ComparisonRow['advantage'] | undefined): { text: string; color: string; bg: string } {
+function edgeLabel(advantage: 'client' | 'competitor' | 'even'): {
+  text: string;
+  color: string;
+  bg: string;
+} {
   const isClient = advantage === 'client';
   const isCompetitor = advantage === 'competitor';
   return {
@@ -39,16 +33,7 @@ function edgeLabel(advantage: ComparisonRow['advantage'] | undefined): { text: s
   };
 }
 
-export default function ComparisonTable({ rows, clientName, competitorName, report }: Props) {
-  console.log(
-    '[ComparisonTable] data received:',
-    JSON.stringify(report?.report_data?.comparison?.slice(0, 2))
-  );
-  console.log(
-    '[TopFindings] data received:',
-    JSON.stringify(report?.report_data?.topFindings?.slice(0, 2))
-  );
-
+export default function ComparisonTable({ rows, clientName, competitorName }: Props) {
   const safeRows = rows ?? [];
 
   return (
@@ -56,24 +41,28 @@ export default function ComparisonTable({ rows, clientName, competitorName, repo
       {/* Mobile: stacked cards */}
       <div className="space-y-4 md:hidden">
         {safeRows.map((row, i) => {
-          const t = normalizeComparisonRow(row);
-          const isClient = t.advantage === 'client';
-          const isCompetitor = t.advantage === 'competitor';
-          const edge = edgeLabel(t.advantage);
+          const category = getComparisonCategory(row);
+          const competitor = getComparisonCompetitor(row);
+          const client = getComparisonClient(row);
+          const advantage = getComparisonAdvantage(row);
+          const note = getComparisonNote(row);
+          const isClient = advantage === 'client';
+          const isCompetitor = advantage === 'competitor';
+          const edge = edgeLabel(advantage);
           return (
             <div key={i} className="card p-4">
               <div className="mb-3 font-heading text-lg" style={{ color: 'var(--light)' }}>
-                {t.category}
+                {category}
               </div>
               <div className="mb-2 text-sm">
                 <span style={{ color: 'var(--muted)' }}>{competitorName}: </span>
                 <span style={{ color: isCompetitor ? 'var(--red)' : 'var(--silver)' }}>
-                  {t.competitor}
+                  {competitor}
                 </span>
               </div>
               <div className="mb-3 text-sm">
                 <span style={{ color: 'var(--muted)' }}>{clientName}: </span>
-                <span style={{ color: isClient ? 'var(--green)' : 'var(--silver)' }}>{t.client}</span>
+                <span style={{ color: isClient ? 'var(--green)' : 'var(--silver)' }}>{client}</span>
               </div>
               <span
                 className="inline-block rounded px-2 py-1 text-xs font-semibold"
@@ -81,9 +70,9 @@ export default function ComparisonTable({ rows, clientName, competitorName, repo
               >
                 {edge.text}
               </span>
-              {t.advantageNote && (
+              {note && (
                 <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
-                  {t.advantageNote}
+                  {note}
                 </p>
               )}
             </div>
@@ -124,9 +113,12 @@ export default function ComparisonTable({ rows, clientName, competitorName, repo
           </thead>
           <tbody>
             {safeRows.map((row, i) => {
-              const t = normalizeComparisonRow(row);
-              const isClient = t.advantage === 'client';
-              const isCompetitor = t.advantage === 'competitor';
+              const category = getComparisonCategory(row);
+              const competitor = getComparisonCompetitor(row);
+              const client = getComparisonClient(row);
+              const advantage = getComparisonAdvantage(row);
+              const isClient = advantage === 'client';
+              const isCompetitor = advantage === 'competitor';
               return (
                 <tr
                   key={i}
@@ -138,7 +130,7 @@ export default function ComparisonTable({ rows, clientName, competitorName, repo
                     className="px-4 py-3 font-medium"
                     style={{ color: 'var(--silver)', borderBottom: '1px solid var(--border)' }}
                   >
-                    {t.category}
+                    {category}
                   </td>
                   <td
                     className="px-4 py-3"
@@ -147,7 +139,7 @@ export default function ComparisonTable({ rows, clientName, competitorName, repo
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    {t.client}
+                    {client}
                   </td>
                   <td
                     className="px-4 py-3"
@@ -156,7 +148,7 @@ export default function ComparisonTable({ rows, clientName, competitorName, repo
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    {t.competitor}
+                    {competitor}
                   </td>
                   <td className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
                     <span

@@ -14,6 +14,18 @@ CRITICAL OUTPUT RULES:
 - deepDive.seo.bullets: 4-7 punchy bullets
 - Ground claims in provided intel; if intel says API not configured, say so honestly in summaries
 
+CRITICAL — always use EXACTLY these field names in your JSON, no variations:
+
+topFindings items: { title, teaser, fullDescription, severity }
+comparison items: { category, competitor, client, advantage, advantageNote }
+advantages items: { title, description, badge }
+opportunities items: { title, description, priority }
+threats items: { title, description }
+roadmap items: { step, phase, title, description, tags }
+
+Never use: finding, detail, name, body, heading, dimension, winner, result, timeframe, or any other field name.
+The frontend reads these exact keys. Any deviation causes blank UI.
+
 FULL JSON SCHEMA (field names must match exactly — do not rename any key):
 {
   "meta": { "clientName": string, "clientUrl": string, "competitorName": string, "competitorUrl": string, "generatedAt": string },
