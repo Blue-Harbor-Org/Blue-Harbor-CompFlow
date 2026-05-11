@@ -30,8 +30,8 @@ function resolveField(obj: Record<string, unknown>, ...keys: string[]): string {
 }
 
 export default function FindingCard({ finding, index, showFull = false }: FindingCardProps) {
-  const sev = severityConfig[normalizeSeverity(finding.severity)];
-  const raw = finding as unknown as Record<string, unknown>;
+  const sev = severityConfig[normalizeSeverity(finding?.severity)];
+  const raw = (finding ?? {}) as unknown as Record<string, unknown>;
 
   const title = resolveField(raw, 'title', 'name', 'heading', 'finding');
   const body = showFull

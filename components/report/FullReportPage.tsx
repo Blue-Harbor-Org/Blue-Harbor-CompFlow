@@ -170,7 +170,7 @@ export default function FullReportPage({
             </p>
           </div>
           <div className="space-y-4">
-            {(data.topFindings ?? []).map((finding, i) => (
+            {(report?.report_data?.topFindings ?? []).map((finding, i) => (
               <FindingCard key={i} finding={finding} index={i} showFull={true} />
             ))}
           </div>
@@ -188,9 +188,10 @@ export default function FullReportPage({
           </h2>
           <div className="card overflow-hidden">
             <ComparisonTable
-              rows={data.comparison ?? []}
+              rows={report?.report_data?.comparison ?? []}
               clientName={lead.business_name}
               competitorName={data.meta?.competitorName ?? 'Competitor'}
+              report={report}
             />
           </div>
         </section>
@@ -299,7 +300,7 @@ export default function FullReportPage({
             Real, verifiable advantages you have right now.
           </p>
           <div className="grid md:grid-cols-2 gap-5">
-            {(data.advantages ?? []).map((adv, i) => (
+            {(report?.report_data?.advantages ?? []).map((adv, i) => (
               <div
                 key={i}
                 className="card p-6"
@@ -345,8 +346,8 @@ export default function FullReportPage({
             Gaps in your competitor&apos;s strategy you can move into now.
           </p>
           <div className="space-y-4">
-            {(data.opportunities ?? []).map((opp, i) => {
-              const pKey = normalizeOpportunityPriority(opp.priority);
+            {(report?.report_data?.opportunities ?? []).map((opp, i) => {
+              const pKey = normalizeOpportunityPriority(opp?.priority);
               const pColors = priorityColors[pKey];
               return (
                 <div
@@ -398,7 +399,7 @@ export default function FullReportPage({
             Honest intelligence on where your competitor has the edge.
           </p>
           <div className="space-y-4">
-            {(data.threats ?? []).map((threat, i) => (
+            {(report?.report_data?.threats ?? []).map((threat, i) => (
               <div
                 key={i}
                 className="card p-6"
@@ -432,7 +433,7 @@ export default function FullReportPage({
             Prioritized steps — start here, do these in order.
           </p>
           <div className="space-y-0">
-            {(data.roadmap ?? []).map((step, i) => (
+            {(report?.report_data?.roadmap ?? []).map((step, i) => (
               <div key={i} className="flex gap-6">
                 {/* Timeline */}
                 <div className="flex flex-shrink-0 flex-col items-center">
@@ -444,9 +445,9 @@ export default function FullReportPage({
                       color: 'var(--gold)',
                     }}
                   >
-                    {step.step}
+                    {step?.step ?? i + 1}
                   </div>
-                  {i < (data.roadmap ?? []).length - 1 && (
+                  {i < (report?.report_data?.roadmap ?? []).length - 1 && (
                     <div
                       className="w-0.5 flex-1 my-2"
                       style={{ background: 'var(--border)', minHeight: 40 }}
@@ -475,7 +476,7 @@ export default function FullReportPage({
                     {str(step, 'description', 'body', 'detail', 'summary', 'content')}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {(step.tags ?? []).map((tag) => (
+                    {(step?.tags ?? []).map((tag) => (
                       <span
                         key={tag}
                         className="text-xs px-2 py-1 rounded"

@@ -83,7 +83,7 @@ export default function TeaserPage({ lead, report }: TeaserPageProps) {
             </div>
 
             <div className="space-y-4 mb-14">
-              {reportData.topFindings.slice(0, 3).map((finding, i) => (
+              {(reportData?.topFindings ?? []).slice(0, 3).map((finding, i) => (
                 <FindingCard key={i} finding={finding} index={i} showFull={false} />
               ))}
             </div>

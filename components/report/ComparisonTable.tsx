@@ -1,14 +1,33 @@
-import type { ComparisonRow } from '@/types/report';
+import type { ComparisonRow, Report } from '@/types/report';
 
 interface Props {
   rows: ComparisonRow[];
   clientName: string;
   competitorName: string;
+  /** When set, logs raw `report_data` slices in the browser for field-name debugging */
+  report?: Report | null;
 }
 
-function edgeLabel(row: ComparisonRow): { text: string; color: string; bg: string } {
-  const isClient = row.advantage === 'client';
-  const isCompetitor = row.advantage === 'competitor';
+type LooseComparison = ComparisonRow & {
+  competitorValue?: string;
+  clientValue?: string;
+  note?: string;
+};
+
+function normalizeComparisonRow(row: ComparisonRow | undefined | null) {
+  const r = row as LooseComparison | null | undefined;
+  return {
+    category: r?.category ?? '',
+    competitor: r?.competitor ?? r?.competitorValue ?? '',
+    client: r?.client ?? r?.clientValue ?? '',
+    advantageNote: r?.advantageNote ?? r?.note ?? '',
+    advantage: r?.advantage,
+  };
+}
+
+function edgeLabel(advantage: ComparisonRow['advantage'] | undefined): { text: string; color: string; bg: string } {
+  const isClient = advantage === 'client';
+  const isCompetitor = advantage === 'competitor';
   return {
     text: isClient ? '✓ You win' : isCompetitor ? '✗ Competitor wins' : '— Even',
     color: isClient ? 'var(--green)' : isCompetitor ? 'var(--red)' : 'var(--muted)',
@@ -20,29 +39,41 @@ function edgeLabel(row: ComparisonRow): { text: string; color: string; bg: strin
   };
 }
 
-export default function ComparisonTable({ rows, clientName, competitorName }: Props) {
+export default function ComparisonTable({ rows, clientName, competitorName, report }: Props) {
+  console.log(
+    '[ComparisonTable] data received:',
+    JSON.stringify(report?.report_data?.comparison?.slice(0, 2))
+  );
+  console.log(
+    '[TopFindings] data received:',
+    JSON.stringify(report?.report_data?.topFindings?.slice(0, 2))
+  );
+
+  const safeRows = rows ?? [];
+
   return (
     <>
       {/* Mobile: stacked cards */}
       <div className="space-y-4 md:hidden">
-        {rows.map((row, i) => {
-          const isClient = row.advantage === 'client';
-          const isCompetitor = row.advantage === 'competitor';
-          const edge = edgeLabel(row);
+        {safeRows.map((row, i) => {
+          const t = normalizeComparisonRow(row);
+          const isClient = t.advantage === 'client';
+          const isCompetitor = t.advantage === 'competitor';
+          const edge = edgeLabel(t.advantage);
           return (
             <div key={i} className="card p-4">
               <div className="mb-3 font-heading text-lg" style={{ color: 'var(--light)' }}>
-                {row.category}
+                {t.category}
               </div>
               <div className="mb-2 text-sm">
                 <span style={{ color: 'var(--muted)' }}>{competitorName}: </span>
                 <span style={{ color: isCompetitor ? 'var(--red)' : 'var(--silver)' }}>
-                  {row.competitor}
+                  {t.competitor}
                 </span>
               </div>
               <div className="mb-3 text-sm">
                 <span style={{ color: 'var(--muted)' }}>{clientName}: </span>
-                <span style={{ color: isClient ? 'var(--green)' : 'var(--silver)' }}>{row.client}</span>
+                <span style={{ color: isClient ? 'var(--green)' : 'var(--silver)' }}>{t.client}</span>
               </div>
               <span
                 className="inline-block rounded px-2 py-1 text-xs font-semibold"
@@ -50,9 +81,9 @@ export default function ComparisonTable({ rows, clientName, competitorName }: Pr
               >
                 {edge.text}
               </span>
-              {row.advantageNote && (
+              {t.advantageNote && (
                 <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
-                  {row.advantageNote}
+                  {t.advantageNote}
                 </p>
               )}
             </div>
@@ -92,9 +123,10 @@ export default function ComparisonTable({ rows, clientName, competitorName }: Pr
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => {
-              const isClient = row.advantage === 'client';
-              const isCompetitor = row.advantage === 'competitor';
+            {safeRows.map((row, i) => {
+              const t = normalizeComparisonRow(row);
+              const isClient = t.advantage === 'client';
+              const isCompetitor = t.advantage === 'competitor';
               return (
                 <tr
                   key={i}
@@ -106,7 +138,7 @@ export default function ComparisonTable({ rows, clientName, competitorName }: Pr
                     className="px-4 py-3 font-medium"
                     style={{ color: 'var(--silver)', borderBottom: '1px solid var(--border)' }}
                   >
-                    {row.category}
+                    {t.category}
                   </td>
                   <td
                     className="px-4 py-3"
@@ -115,7 +147,7 @@ export default function ComparisonTable({ rows, clientName, competitorName }: Pr
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    {row.client}
+                    {t.client}
                   </td>
                   <td
                     className="px-4 py-3"
@@ -124,7 +156,7 @@ export default function ComparisonTable({ rows, clientName, competitorName }: Pr
                       borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    {row.competitor}
+                    {t.competitor}
                   </td>
                   <td className="px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
                     <span
