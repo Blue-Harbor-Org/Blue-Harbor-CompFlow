@@ -72,6 +72,10 @@ export default function DeepDivePanel({
   const showGenerate =
     deepdiveStatus !== 'generating' && !hasDeepData;
 
+  /** Show regenerate whenever stored deep-dive JSON exists and we are not mid-generation. */
+  const showRegenerate =
+    hasDeepData && deepdiveStatus !== 'generating';
+
   return (
     <div
       style={{
@@ -82,6 +86,7 @@ export default function DeepDivePanel({
         marginTop: 20,
       }}
     >
+      {/* Admin dashboard only — never imported on public /report/* pages */}
       <div
         style={{
           display: 'flex',
@@ -158,15 +163,6 @@ export default function DeepDivePanel({
           >
             👁 Preview
           </button>
-          <button
-            type="button"
-            onClick={() => handleGenerate(true)}
-            disabled={generating}
-            className="btn-ghost w-full py-2 text-xs disabled:opacity-60"
-            style={{ color: 'var(--muted)' }}
-          >
-            {generating ? 'Regenerating...' : '🔄 Regenerate Report'}
-          </button>
         </div>
       )}
 
@@ -182,21 +178,26 @@ export default function DeepDivePanel({
           >
             👁 View Report
           </button>
-          <button
-            type="button"
-            onClick={() => handleGenerate(true)}
-            disabled={generating}
-            className="btn-ghost py-3 text-xs disabled:opacity-60"
-            style={{ color: 'var(--muted)' }}
-          >
-            {generating ? 'Regenerating...' : '🔄 Regenerate'}
-          </button>
           {deepdiveStatus === 'viewed' && deepdiveViewedAt && (
             <span style={{ color: 'var(--green)', fontSize: 12 }}>
               ✓ Client viewed{' '}
               {new Date(deepdiveViewedAt).toLocaleDateString()}
             </span>
           )}
+        </div>
+      )}
+
+      {showRegenerate && (
+        <div style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            onClick={() => handleGenerate(true)}
+            disabled={generating}
+            className="btn-ghost w-full py-2.5 text-sm disabled:opacity-60"
+            style={{ color: 'var(--muted)', borderStyle: 'dashed' }}
+          >
+            {generating ? 'Regenerating…' : '↻ Regenerate'}
+          </button>
         </div>
       )}
     </div>
