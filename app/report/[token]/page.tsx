@@ -6,12 +6,10 @@ import type { Report } from '@/types/report';
 
 interface Props {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ locked?: string; admin?: string }>;
 }
 
-export default async function ReportTeaserPage({ params, searchParams }: Props) {
+export default async function ReportTeaserPage({ params }: Props) {
   const { token } = await params;
-  const { locked, admin } = await searchParams;
 
   const supabase = createAdminClient();
 
@@ -33,8 +31,9 @@ export default async function ReportTeaserPage({ params, searchParams }: Props) 
     .eq('report_type', 'standard')
     .maybeSingle();
 
-  // If unlocked (and not coming from locked redirect), go to full report
-  if (report?.is_unlocked && !locked) {
+  // After fetching the report, before rendering the teaser:
+  // unlocked clients should land on the full report (deep dive stays on its own URL)
+  if (report?.is_unlocked) {
     redirect(`/report/${token}/full`);
   }
 
