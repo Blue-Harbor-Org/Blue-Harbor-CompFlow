@@ -65,6 +65,34 @@ PRIORITIES: ${vertical.contextHints}
 Return ONLY the JSON object.`;
 }
 
+/** Strip fences, parse JSON, then salvage truncated output by closing brackets/braces. */
+function safeParseJSON(raw: string): unknown {
+  let cleaned = raw
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    console.log('[Claude] JSON truncated, attempting repair...');
+    const openBraces =
+      (cleaned.match(/{/g) || []).length - (cleaned.match(/}/g) || []).length;
+    const openBrackets =
+      (cleaned.match(/\[/g) || []).length - (cleaned.match(/\]/g) || []).length;
+    let repaired = cleaned;
+    for (let i = 0; i < openBrackets; i++) repaired += ']';
+    for (let i = 0; i < openBraces; i++) repaired += '}';
+    try {
+      return JSON.parse(repaired);
+    } catch (repairErr) {
+      console.error('[Claude] JSON repair failed:', repairErr);
+      throw repairErr;
+    }
+  }
+}
+
 export async function analyzeDeepDiveWithClaude(
   clientContent: string,
   competitorContent: string,
@@ -95,7 +123,7 @@ ${competitorContent}`;
 
   const response = await client.messages.create({
     model: anthropicModelId,
-    max_tokens: 12000,
+    max_tokens: 8000,
     system: buildDeepSystem(industry),
     messages: [{ role: 'user', content: userPrompt }],
   });
@@ -105,15 +133,9 @@ ${competitorContent}`;
     .map((b) => (b as { type: 'text'; text: string }).text)
     .join('');
 
-  const cleaned = rawText
-    .replace(/^```json\s*/i, '')
-    .replace(/^```\s*/i, '')
-    .replace(/\s*```$/i, '')
-    .trim();
-
   let parsed: ReportData;
   try {
-    parsed = JSON.parse(cleaned) as ReportData;
+    parsed = safeParseJSON(rawText) as ReportData;
   } catch (err) {
     console.error('[analyzeDeepDive] JSON parse failed. Raw text length:', rawText.length, 'Stop reason:', response.stop_reason);
     console.error('[analyzeDeepDive] Raw text tail:', rawText.slice(-500));
