@@ -133,7 +133,7 @@ export default function DeepDivePanel({
       {showGenerate && (
         <button
           type="button"
-          onClick={handleGenerate}
+          onClick={() => handleGenerate()}
           disabled={generating}
           className="btn-primary w-full py-3 text-sm disabled:opacity-60"
         >
