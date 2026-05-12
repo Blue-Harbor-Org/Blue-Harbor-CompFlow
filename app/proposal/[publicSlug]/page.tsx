@@ -16,17 +16,18 @@ export default async function PublicProposalPage({ params }: Props) {
 
   const supabase = createAnonClient();
 
-  const { data: proposal, error } = await supabase
+  const { data, error } = await supabase
     .rpc('get_proposal_by_slug', { p_slug: publicSlug })
     .single();
 
-  if (error || !proposal) notFound();
+  if (error || !data) notFound();
 
+  const proposal = data as unknown as Proposal;
   const clientName = proposal.title || 'Client';
 
   return (
     <PublicProposal
-      proposal={proposal as unknown as Proposal}
+      proposal={proposal}
       clientName={clientName}
       slug={publicSlug}
     />
