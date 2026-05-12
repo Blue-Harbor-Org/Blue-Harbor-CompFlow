@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createAdminClient } from '@/lib/supabase';
+import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { scrapeWebsite } from '@/lib/scraper';
 import { analyzeWithClaude } from '@/lib/analyzeWithClaude';
 import { sendReportReadyEmail } from '@/lib/resend';
@@ -14,6 +15,9 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireTeamMember();
+    if (isAuthError(auth)) return auth;
+
     const body = await req.json() as {
       leadId?: string;
       industry?: string;

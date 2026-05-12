@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase';
+import { createAnonClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   const { slug } = await request.json();
@@ -8,9 +8,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing slug' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const supabase = createAnonClient();
 
-  const { data: proposal, error } = await admin
+  const { data: proposal, error } = await supabase
     .from('bh_proposals')
     .update({
       accepted_at: new Date().toISOString(),
@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (proposal?.client_id) {
-    // Update leads table (pipeline dashboard)
-    await admin
+    await supabase
       .from('leads')
       .update({ pipeline_status: 'signed', status_changed_at: new Date().toISOString() })
       .eq('id', proposal.client_id);

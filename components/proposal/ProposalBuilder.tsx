@@ -7,7 +7,6 @@ import type {
   ProposalData,
   ProposalDeliverable,
   PricingTier,
-  PricingFeature,
   RoadmapPhase,
   Proposal,
 } from '@/types/proposal';
@@ -22,7 +21,6 @@ interface Props {
   clientId: string;
   clientName: string;
   existingProposal: Proposal | null;
-  intakeData: Record<string, unknown> | null;
   battlecardFromReport: BattlecardRow[];
   situationSummary: string;
 }
@@ -35,7 +33,6 @@ export default function ProposalBuilder({
   clientId,
   clientName,
   existingProposal,
-  intakeData,
   battlecardFromReport,
   situationSummary: defaultSummary,
 }: Props) {

@@ -61,11 +61,8 @@ export interface IntakeFormData {
 export interface IntakeSubmission extends IntakeFormData {
   id: string;
   client_id: string;
-  organization_id: string;
-  current_step: number;
   completed: boolean;
-  created_at: string;
-  updated_at: string;
+  submitted_at: string;
 }
 
 export const INTAKE_STEPS = [

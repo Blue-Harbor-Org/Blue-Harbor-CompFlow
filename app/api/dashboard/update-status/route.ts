@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
   const { data: member } = await admin
-    .from('team_members')
+    .from('bh_team_members')
     .select('id')
     .eq('user_id', user.id)
     .maybeSingle();
@@ -27,24 +27,24 @@ export async function POST(request: Request) {
   }
 
   const { data: prev } = await admin
-    .from('leads')
-    .select('pipeline_status')
+    .from('bh_clients')
+    .select('status')
     .eq('id', clientId)
     .maybeSingle();
 
   const { error } = await admin
-    .from('leads')
-    .update({ pipeline_status: status, status_changed_at: new Date().toISOString() })
+    .from('bh_clients')
+    .update({ status, notes: `status_changed_at:${new Date().toISOString()}` })
     .eq('id', clientId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   await logActivity(
     clientId,
-    member.id,
+    user.id,
     'status_change',
-    `Status changed from ${prev?.pipeline_status ?? 'unknown'} to ${status}`,
-    { from: prev?.pipeline_status, to: status }
+    `Status changed from ${prev?.status ?? 'unknown'} to ${status}`,
+    { from: prev?.status, to: status }
   );
 
   return NextResponse.json({ ok: true });

@@ -96,7 +96,6 @@ export default async function ProposalBuilderPage({ params }: Props) {
         clientId={clientId}
         clientName={client.business_name}
         existingProposal={existingProposal}
-        intakeData={null}
         battlecardFromReport={battlecardFromReport}
         situationSummary={situationSummary}
       />

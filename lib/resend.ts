@@ -3,7 +3,11 @@ import type { ReportData } from '@/types/report';
 import type { Lead } from '@/types/lead';
 import { getFindingTitle } from '@/lib/reportUtils';
 
-function getResend() {
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set — email disabled');
+    return null;
+  }
   return new Resend(process.env.RESEND_API_KEY);
 }
 
@@ -76,7 +80,10 @@ export async function sendReportReadyEmail(
     <p class="body-text">— Blue Harbor</p>
   `;
 
-  return getResend().emails.send({
+  const resend = getResend();
+  if (!resend) return { error: 'email_disabled' };
+
+  return resend.emails.send({
     from: FROM,
     to,
     subject: `${businessName} — Your competitive analysis is ready`,
@@ -110,7 +117,10 @@ export async function sendUnlockEmail(
     <p class="body-text">Talk soon,<br/><strong style="color:#edf1f7">Blue Harbor</strong></p>
   `;
 
-  return getResend().emails.send({
+  const resend = getResend();
+  if (!resend) return { error: 'email_disabled' };
+
+  return resend.emails.send({
     from: FROM,
     to,
     subject: `Your full Blue Harbor report is unlocked — ${businessName}`,
@@ -138,7 +148,10 @@ export async function sendDeepDiveUnlocked(lead: Lead, deepDiveUrl: string) {
     <p class="body-text">— Blue Harbor</p>
   `;
 
-  return getResend().emails.send({
+  const resend = getResend();
+  if (!resend) return { error: 'email_disabled' };
+
+  return resend.emails.send({
     from: FROM,
     to: lead.email,
     subject: `Your full deep-dive competitive report is ready — ${lead.business_name}`,
@@ -174,7 +187,10 @@ export async function sendAdminNotificationEmail(
     <a href="${dashboardUrl}" class="btn">View in Dashboard →</a>
   `;
 
-  return getResend().emails.send({
+  const resend = getResend();
+  if (!resend) return { error: 'email_disabled' };
+
+  return resend.emails.send({
     from: FROM,
     to: adminEmail,
     subject: `🔥 ${businessName} just booked a call`,

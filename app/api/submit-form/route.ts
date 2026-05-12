@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
         String(error.message ?? '').includes("'industry'"));
 
     if (industryColumnMissing) {
-      const { industry: _drop, ...withoutIndustry } = row;
+      const { industry: _, ...withoutIndustry } = row;
       const retry = await supabase.from('leads').insert(withoutIndustry).select().single();
       lead = retry.data;
       error = retry.error;

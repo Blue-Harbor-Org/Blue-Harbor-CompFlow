@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { findCompetitors } from '@/lib/findCompetitors';
 import type { CompetitorEntry } from '@/types/lead';
 import { parseCompetitors, domainsMatch } from '@/lib/competitorLead';
 
 export async function POST(req: NextRequest) {
   try {
-    const serverSupabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await serverSupabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireTeamMember();
+    if (isAuthError(auth)) return auth;
 
     const body = (await req.json()) as { leadId?: string };
     const leadId = body.leadId;

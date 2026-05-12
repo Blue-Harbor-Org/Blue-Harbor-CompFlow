@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import type { LeadStatus } from '@/types/lead';
 
 const ALLOWED: LeadStatus[] = [
@@ -16,14 +16,8 @@ const ALLOWED: LeadStatus[] = [
 
 export async function POST(req: NextRequest) {
   try {
-    const serverSupabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await serverSupabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireTeamMember();
+    if (isAuthError(auth)) return auth;
 
     const body = await req.json() as { leadId?: string; status?: string };
     const { leadId, status } = body;

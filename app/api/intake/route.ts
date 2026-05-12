@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 
+async function validateIntakeToken(
+  supabase: ReturnType<typeof createAdminClient>,
+  clientId: string,
+  token: string | null
+) {
+  if (!token) return false;
+  const { data } = await supabase
+    .from('bh_clients')
+    .select('id')
+    .eq('id', clientId)
+    .eq('intake_token', token)
+    .maybeSingle();
+  return !!data;
+}
+
 export async function GET(req: NextRequest) {
   const clientId = req.nextUrl.searchParams.get('clientId');
   if (!clientId) {
@@ -9,9 +24,14 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient();
 
+  const intakeToken = req.headers.get('x-intake-token');
+  if (!(await validateIntakeToken(supabase, clientId, intakeToken))) {
+    return NextResponse.json({ error: 'Invalid or missing intake token' }, { status: 403 });
+  }
+
   const { data: client, error: clientErr } = await supabase
-    .from('clients')
-    .select('id, company_name, email, phone, address, organization_id')
+    .from('bh_clients')
+    .select('id, company_name, contact_email, contact_phone')
     .eq('id', clientId)
     .single();
 
@@ -20,10 +40,10 @@ export async function GET(req: NextRequest) {
   }
 
   const { data: submission } = await supabase
-    .from('intake_submissions')
+    .from('bh_intake_submissions')
     .select('*')
     .eq('client_id', clientId)
-    .order('created_at', { ascending: false })
+    .order('submitted_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
@@ -32,7 +52,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { clientId, formData, currentStep, completed } = body;
+  const { clientId, formData, completed } = body;
 
   if (!clientId) {
     return NextResponse.json({ error: 'clientId required' }, { status: 400 });
@@ -40,9 +60,14 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient();
 
+  const intakeToken = req.headers.get('x-intake-token');
+  if (!(await validateIntakeToken(supabase, clientId, intakeToken))) {
+    return NextResponse.json({ error: 'Invalid or missing intake token' }, { status: 403 });
+  }
+
   const { data: client } = await supabase
-    .from('clients')
-    .select('id, organization_id')
+    .from('bh_clients')
+    .select('id')
     .eq('id', clientId)
     .single();
 
@@ -51,54 +76,53 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: existing } = await supabase
-    .from('intake_submissions')
+    .from('bh_intake_submissions')
     .select('id')
     .eq('client_id', clientId)
-    .order('created_at', { ascending: false })
+    .order('submitted_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   const row = {
     client_id: clientId,
-    organization_id: client.organization_id,
-    current_step: currentStep ?? 1,
     completed: completed ?? false,
-    company_name: formData.company_name || null,
+    total_volume: formData.total_loan_volume || null,
     years_in_business: formData.years_in_business || null,
-    total_loan_volume: formData.total_loan_volume || null,
-    total_deals_closed: formData.total_deals_closed || null,
-    deal_history: formData.deal_history ?? [],
+    deals_closed: formData.total_deals_closed || null,
+    deal_examples: formData.deal_history ?? [],
     office_phone: formData.office_phone || null,
     contact_email: formData.contact_email || null,
-    physical_address: formData.physical_address || null,
+    address: formData.physical_address || null,
     john_cell: formData.john_cell || null,
     craig_cell: formData.craig_cell || null,
-    direct_lending_min: formData.direct_lending_min || null,
-    direct_lending_max: formData.direct_lending_max || null,
-    brokered_loan_min: formData.brokered_loan_min || null,
-    brokered_loan_max: formData.brokered_loan_max || null,
-    geographic_focus: formData.geographic_focus ?? [],
-    geographic_focus_other: formData.geographic_focus_other || null,
-    property_types_served: formData.property_types_served ?? [],
-    testimonials: formData.testimonials ?? [],
+    loan_min: formData.direct_lending_min || null,
+    loan_max: formData.brokered_loan_min || null,
+    geo_focus: Array.isArray(formData.geographic_focus)
+      ? [
+          ...formData.geographic_focus,
+          formData.geographic_focus_other || '',
+        ].filter(Boolean).join(', ')
+      : formData.geographic_focus || null,
+    testimonials: Array.isArray(formData.testimonials)
+      ? formData.testimonials.map((t: { text?: string }) => t.text ?? '').filter(Boolean).join('\n---\n')
+      : formData.testimonials || null,
     team_bios: formData.team_bios ?? [],
-    awards_press: formData.awards_press || null,
-    marketing_file_urls: formData.marketing_file_urls ?? [],
-    updated_at: new Date().toISOString(),
+    existing_copy: formData.awards_press || null,
+    submitted_at: new Date().toISOString(),
   };
 
   let result;
 
   if (existing) {
     result = await supabase
-      .from('intake_submissions')
+      .from('bh_intake_submissions')
       .update(row)
       .eq('id', existing.id)
       .select()
       .single();
   } else {
     result = await supabase
-      .from('intake_submissions')
+      .from('bh_intake_submissions')
       .insert(row)
       .select()
       .single();
@@ -111,8 +135,8 @@ export async function POST(req: NextRequest) {
 
   if (completed) {
     await supabase
-      .from('clients')
-      .update({ notes: 'intake_complete' })
+      .from('bh_clients')
+      .update({ status: 'intake_complete' })
       .eq('id', clientId);
   }
 

@@ -21,9 +21,10 @@ interface ClientData {
 
 interface IntakeFormProps {
   clientId: string;
+  intakeToken: string;
 }
 
-export default function IntakeForm({ clientId }: IntakeFormProps) {
+export default function IntakeForm({ clientId, intakeToken }: IntakeFormProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [step, setStep] = useState(1);
@@ -38,7 +39,9 @@ export default function IntakeForm({ clientId }: IntakeFormProps) {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/intake?clientId=${clientId}`);
+        const res = await fetch(`/api/intake?clientId=${clientId}`, {
+          headers: { 'x-intake-token': intakeToken },
+        });
         if (!res.ok) {
           setError('Could not load client data. Please check the URL.');
           setLoading(false);
@@ -100,7 +103,10 @@ export default function IntakeForm({ clientId }: IntakeFormProps) {
       try {
         const res = await fetch('/api/intake', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-intake-token': intakeToken,
+          },
           body: JSON.stringify({
             clientId,
             formData,

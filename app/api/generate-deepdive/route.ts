@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomBytes } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { generateDeepDiveReport } from '@/lib/generateDeepDiveReport';
 import { REPORT_MODEL_COOKIE, resolveReportModelId } from '@/lib/reportModel';
 import type { Lead } from '@/types/lead';
@@ -11,14 +11,8 @@ export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {
-    const serverSupabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await serverSupabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireTeamMember();
+    if (isAuthError(auth)) return auth;
 
     const body = await req.json() as { leadId?: string; force?: boolean };
     const { leadId, force = false } = body;

@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { slugify } from '@/lib/slugify';
 import type { ProposalData } from '@/types/proposal';
 
 export async function POST(request: NextRequest) {
-  const session = await createServerSupabaseClient();
-  const { data: { user } } = await session.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireTeamMember();
+  if (isAuthError(auth)) return auth;
+  const { user } = auth;
 
   const body = await request.json();
   const { clientId, proposalData } = body as {
@@ -61,11 +59,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await createServerSupabaseClient();
-  const { data: { user } } = await session.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const auth = await requireTeamMember();
+  if (isAuthError(auth)) return auth;
 
   const body = await request.json();
   const { proposalId, proposalData, action } = body as {

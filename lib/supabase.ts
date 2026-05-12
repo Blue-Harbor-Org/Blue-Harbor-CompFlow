@@ -11,6 +11,16 @@ export function createBrowserClient() {
   return createSSRBrowserClient(supabaseUrl, supabaseAnonKey);
 }
 
+// Anon client — respects RLS, no session required (server only)
+export function createAnonClient() {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
 // Service-role admin client (bypasses RLS) — server only
 export function createAdminClient() {
   return createClient(supabaseUrl, supabaseServiceKey, {

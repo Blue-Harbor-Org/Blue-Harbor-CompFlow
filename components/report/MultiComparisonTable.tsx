@@ -9,7 +9,6 @@ interface Props {
 
 function winnerBadge(
   row: MultiComparisonRow,
-  clientName: string
 ): { text: string; color: string; bg: string } {
   if (row.clientAdvantage) {
     return {
@@ -33,7 +32,7 @@ export default function MultiComparisonTable({ rows, clientName }: Props) {
     <>
       <div className="space-y-4 md:hidden">
         {safe.map((row, i) => {
-          const w = winnerBadge(row, clientName);
+          const w = winnerBadge(row);
           return (
             <div key={i} className="card p-4">
               <div className="font-heading mb-3 text-lg" style={{ color: 'var(--light)' }}>
@@ -108,7 +107,7 @@ export default function MultiComparisonTable({ rows, clientName }: Props) {
           <tbody>
             {safe.map((row, i) => {
               const comps = row.competitors ?? [];
-              const w = winnerBadge(row, clientName);
+              const w = winnerBadge(row);
               const fill = (idx: number) => comps[idx]?.value ?? '—';
               const fillName = (idx: number) => comps[idx]?.name ?? `Comp ${idx + 1}`;
               return (
