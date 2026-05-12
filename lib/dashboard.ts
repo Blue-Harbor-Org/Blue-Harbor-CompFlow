@@ -23,33 +23,48 @@ export async function getTeamMemberByUserId(userId: string): Promise<TeamMember 
 export async function getClients(): Promise<Client[]> {
   const admin = createAdminClient();
 
-  const [{ data: clients }, { data: members }] = await Promise.all([
+  const [{ data: clients }, { data: members }, { data: leads }] = await Promise.all([
     admin.from('bh_clients').select('*').order('created_at', { ascending: false }),
     admin.from('bh_team_members').select('*'),
+    admin.from('leads').select('*'),
   ]);
 
   const memberByUserId = new Map(
     (members ?? []).map(m => [m.user_id, toBhTeamMember(m)])
   );
 
-  return (clients ?? []).map(c => ({
-    ...c,
-    business_name: c.company_name,
-    email: c.contact_email ?? '',
-    phone: c.contact_phone,
-    pipeline_status: c.status,
-    status_changed_at: c.created_at,
-    assigned_member: c.assigned_to ? memberByUserId.get(c.assigned_to) ?? null : null,
-  })) as Client[];
+  const leadById = new Map(
+    (leads ?? []).map(l => [l.id, l])
+  );
+
+  return (clients ?? []).map(c => {
+    const lead = leadById.get(c.id);
+    return {
+      ...c,
+      business_name: c.company_name,
+      email: c.contact_email ?? '',
+      phone: c.contact_phone,
+      pipeline_status: c.status,
+      status_changed_at: c.created_at,
+      assigned_member: c.assigned_to ? memberByUserId.get(c.assigned_to) ?? null : null,
+      website_url: lead?.website_url ?? '',
+      industry: lead?.industry ?? 'general',
+      source: lead?.source ?? 'manual',
+      report_token: lead?.report_token ?? '',
+      competitor_url: lead?.competitor_url ?? null,
+      competitor_name: lead?.competitor_name ?? null,
+      competitors: lead?.competitors ?? null,
+    };
+  }) as Client[];
 }
 
 export async function getClient(clientId: string): Promise<Client | null> {
   const admin = createAdminClient();
-  const { data: client } = await admin
-    .from('bh_clients')
-    .select('*')
-    .eq('id', clientId)
-    .maybeSingle();
+
+  const [{ data: client }, { data: lead }] = await Promise.all([
+    admin.from('bh_clients').select('*').eq('id', clientId).maybeSingle(),
+    admin.from('leads').select('*').eq('id', clientId).maybeSingle(),
+  ]);
 
   if (!client) return null;
 
@@ -71,6 +86,13 @@ export async function getClient(clientId: string): Promise<Client | null> {
     pipeline_status: client.status,
     status_changed_at: client.created_at,
     assigned_member,
+    website_url: lead?.website_url ?? '',
+    industry: lead?.industry ?? 'general',
+    source: lead?.source ?? 'manual',
+    report_token: lead?.report_token ?? '',
+    competitor_url: lead?.competitor_url ?? null,
+    competitor_name: lead?.competitor_name ?? null,
+    competitors: lead?.competitors ?? null,
   } as Client;
 }
 
