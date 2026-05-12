@@ -7,7 +7,7 @@ import QuickActions from '@/components/admin/QuickActions';
 import { getVertical } from '@/lib/verticals';
 import { formatRelativeTime } from '@/lib/formatRelativeTime';
 
-const DOT_PALETTE = ['#60a5fa', '#d4a843', '#2ecc8a', '#8b6fd4', '#e05050', '#8fa8c8'];
+const DOT_PALETTE = ['#60a5fa', '#e5b84a', '#34d399', '#8b6fd4', '#f06060', '#9cb3d4'];
 
 function industryDotColor(industry: string | undefined): string {
   const id = (industry || 'general').toLowerCase();

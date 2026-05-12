@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ReportData } from '@/types/report';
+import type { CompetitorEntry } from '@/types/lead';
 import { getVertical } from './verticals';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -168,5 +169,116 @@ ${competitorContent}`;
     year: 'numeric',
     timeZone: 'America/New_York',
   }).format(new Date());
+  return parsed;
+}
+
+const DEEP_MULTI_SYSTEM_BASE = `You are an elite marketing strategist at Blue Harbor producing a DEEP DIVE competitive intelligence deliverable analyzing ONE CLIENT against MULTIPLE COMPETITORS.
+
+Use ALL supplied scraped content and enriched intel (SEO summaries, reviews/places notes). Be specific and grounded.
+
+CRITICAL OUTPUT RULES:
+- Return ONLY valid JSON — no markdown fences
+- Same hero/overview/topFindings/advantages/opportunities/roadmap/cta/deepDive structure as standard deep dives
+- PLUS "competitorRankings" array (required for multi): rank each named competitor by threat level
+- comparison rows MUST use MULTI shape (not legacy two-column):
+  { "category", "client", "competitors": [ { "name", "value" } ], "topCompetitor", "clientAdvantage": boolean, "advantageNote" }
+- threats items may include optional "competitorName" when a specific competitor is referenced
+- overview may include "competitorSummaries": [ { "name", "summary" } ] one per competitor
+- meta may include "competitors": [ { "name", "url" } ] listing all analyzed competitors
+- deepDive.reviews may include "competitorSummaries": [ { "name", "summary" } ] for reputation per competitor
+
+CRITICAL JSON RULES:
+- Never use double quotes inside string values — use single quotes or rephrase
+- Never include newlines inside string values — use spaces instead
+- Never include special characters: tab, backslash, or control characters in strings
+
+FIELD NAMES (exact):
+topFindings: { title, teaser, fullDescription, severity }
+comparison (MULTI): { category, client, competitors (array of {name,value}), topCompetitor, clientAdvantage, advantageNote }
+advantages, opportunities, threats (optional competitorName), roadmap, cta
+deepDive.seo, deepDive.reviews (optional competitorSummaries array)
+competitorRankings: [ { name, threatLevel: high|medium|low, summary } ]
+
+Never rename keys.`;
+
+function buildDeepMultiSystem(industry: string, competitorNames: string[]): string {
+  const vertical = getVertical(industry);
+  return `${DEEP_MULTI_SYSTEM_BASE}
+
+COMPETITORS IN THIS ANALYSIS (${competitorNames.length}): ${competitorNames.join(', ')}
+
+INDUSTRY VERTICAL: ${vertical.label}
+TONE: ${vertical.tone}
+PRIORITIES: ${vertical.contextHints}
+
+Return ONLY the JSON object.`;
+}
+
+export async function analyzeDeepDiveMultiWithClaude(
+  clientContent: string,
+  clientName: string,
+  clientUrl: string,
+  competitorInputs: { entry: CompetitorEntry; content: string }[],
+  enrichedIntel: string,
+  industry: string,
+  anthropicModelId: string
+): Promise<ReportData> {
+  const names = competitorInputs.map((c) => c.entry.name);
+  const competitorBlocks = competitorInputs
+    .map(
+      (c, i) => `---
+
+COMPETITOR ${i + 1}: ${c.entry.name} (${c.entry.url})
+
+${c.content}`
+    )
+    .join('\n');
+
+  const userPrompt = `Deep dive MULTI-COMPETITOR analysis. Return ONLY JSON per schema.
+
+ENRICHED INTEL:
+${enrichedIntel}
+
+---
+
+CLIENT: ${clientName} (${clientUrl})
+
+${clientContent}
+${competitorBlocks}`;
+
+  const response = await client.messages.create({
+    model: anthropicModelId,
+    max_tokens: 14000,
+    system: buildDeepMultiSystem(industry, names),
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+
+  const rawText = response.content
+    .filter((b) => b.type === 'text')
+    .map((b) => (b as { type: 'text'; text: string }).text)
+    .join('');
+
+  let parsed: ReportData;
+  try {
+    parsed = extractAndParseJSON(rawText) as ReportData;
+  } catch (err) {
+    console.error('[analyzeDeepDiveMulti] JSON parse failed. Raw tail:', rawText.slice(-500));
+    throw new Error(`Deep dive multi JSON parse failed: ${err}`);
+  }
+
+  parsed.meta.generatedAt = new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/New_York',
+  }).format(new Date());
+
+  parsed.meta.competitors = competitorInputs.map((c) => ({
+    name: c.entry.name,
+    url: c.entry.url,
+  }));
+  parsed.meta.competitorName = names[0] ?? parsed.meta.competitorName;
+  parsed.meta.competitorUrl = competitorInputs[0]?.entry.url ?? parsed.meta.competitorUrl;
+
   return parsed;
 }

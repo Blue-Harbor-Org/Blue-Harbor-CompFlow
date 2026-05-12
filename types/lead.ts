@@ -11,6 +11,15 @@ export type LeadSource = 'public_form' | 'manual';
 
 export type DeepDiveStatus = 'generating' | 'ready' | 'unlocked' | 'viewed';
 
+/** Up to 3 competitors per lead — stored in `competitors` JSONB */
+export interface CompetitorEntry {
+  id: string;
+  name: string;
+  url: string;
+  source: 'auto' | 'manual';
+  autoFound: boolean;
+}
+
 export interface Lead {
   id: string;
   created_at: string;
@@ -19,8 +28,11 @@ export interface Lead {
   email: string;
   phone: string | null;
   website_url: string;
-  competitor_url: string;
+  /** Legacy single competitor URL — kept in sync with first entry in `competitors` when possible */
+  competitor_url: string | null;
   competitor_name: string | null;
+  /** Up to 3 competitors (auto + manual). Prefer this over legacy columns. */
+  competitors?: CompetitorEntry[] | null;
   /** Industry vertical — drives AI tone (see lib/verticals.ts) */
   industry?: string;
   source: LeadSource;

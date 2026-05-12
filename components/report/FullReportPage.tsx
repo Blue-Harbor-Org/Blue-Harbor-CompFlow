@@ -1,5 +1,5 @@
 import type { Lead } from '@/types/lead';
-import type { Report } from '@/types/report';
+import type { ComparisonRow, Report } from '@/types/report';
 import {
   getAdvantageBadge,
   getAdvantageDescription,
@@ -10,11 +10,14 @@ import {
   getRoadmapDescription,
   getRoadmapPhase,
   getRoadmapTitle,
+  getThreatCompetitorName,
   getThreatDescription,
   getThreatTitle,
+  isMultiComparisonRows,
 } from '@/lib/reportUtils';
 import FindingCard from './FindingCard';
 import ComparisonTable from './ComparisonTable';
+import MultiComparisonTable from './MultiComparisonTable';
 import RetainerPitch from './RetainerPitch';
 import StickyCallBanner from './StickyCallBanner';
 import Link from 'next/link';
@@ -200,11 +203,18 @@ export default function FullReportPage({
             Head-to-Head Comparison
           </h2>
           <div className="card overflow-hidden">
-            <ComparisonTable
-              rows={report?.report_data?.comparison ?? []}
-              clientName={lead.business_name}
-              competitorName={data.meta?.competitorName ?? 'Competitor'}
-            />
+            {isMultiComparisonRows(report?.report_data?.comparison) ? (
+              <MultiComparisonTable
+                rows={report.report_data!.comparison}
+                clientName={lead.business_name}
+              />
+            ) : (
+              <ComparisonTable
+                rows={(report?.report_data?.comparison ?? []) as ComparisonRow[]}
+                clientName={lead.business_name}
+                competitorName={data.meta?.competitorName ?? 'Competitor'}
+              />
+            )}
           </div>
         </section>
 
@@ -289,6 +299,20 @@ export default function FullReportPage({
                     </p>
                   </div>
                 </div>
+                {(data.deepDive.reviews?.competitorSummaries ?? []).length > 0 && (
+                  <div className="mb-4 grid gap-3 md:grid-cols-3">
+                    {(data.deepDive.reviews!.competitorSummaries ?? []).map((cs) => (
+                      <div key={cs.name} className="rounded-lg border p-4" style={{ borderColor: 'var(--border)' }}>
+                        <div className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--muted)' }}>
+                          {cs.name}
+                        </div>
+                        <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
+                          {cs.summary}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-sm leading-relaxed border-t pt-4" style={{ borderColor: 'var(--border)', color: 'var(--light)' }}>
                   <strong style={{ color: 'var(--gold)' }}>Recommendation:</strong>{' '}
                   {data.deepDive.reviews?.recommendation}
@@ -423,6 +447,11 @@ export default function FullReportPage({
                 >
                   {getThreatTitle(threat)}
                 </h3>
+                {variant === 'deepdive' && getThreatCompetitorName(threat) && (
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+                    Competitor: {getThreatCompetitorName(threat)}
+                  </p>
+                )}
                 <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
                   {getThreatDescription(threat)}
                 </p>
@@ -430,6 +459,76 @@ export default function FullReportPage({
             ))}
           </div>
         </section>
+
+        {variant === 'deepdive' &&
+          (report?.report_data?.competitorRankings?.length ?? 0) > 0 && (
+            <>
+              <div className="gold-divider mb-14" />
+              <section className="mb-14">
+                <h2
+                  className="font-heading text-3xl md:text-4xl mb-2"
+                  style={{ color: 'var(--light)' }}
+                >
+                  How Your Competitors Stack Up
+                </h2>
+                <p className="text-sm mb-8" style={{ color: 'var(--muted)' }}>
+                  Ranked by competitive pressure — highest threat first.
+                </p>
+                <div className="space-y-4">
+                  {(report!.report_data!.competitorRankings ?? []).map((cr, idx) => {
+                    const level = cr.threatLevel?.toLowerCase() ?? 'medium';
+                    const colors =
+                      level === 'high'
+                        ? { border: 'var(--red)', badge: 'rgba(224,80,80,0.15)', fg: 'var(--red)' }
+                        : level === 'low'
+                          ? {
+                              border: 'var(--silver)',
+                              badge: 'rgba(143,168,200,0.12)',
+                              fg: 'var(--silver)',
+                            }
+                          : {
+                              border: 'var(--gold)',
+                              badge: 'rgba(212,168,67,0.12)',
+                              fg: 'var(--gold)',
+                            };
+                    return (
+                      <div
+                        key={`${cr.name}-${idx}`}
+                        className="card flex flex-wrap items-start gap-4 p-5 md:flex-nowrap"
+                        style={{ borderLeft: `4px solid ${colors.border}` }}
+                      >
+                        <div
+                          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                          style={{
+                            background: colors.badge,
+                            color: colors.fg,
+                          }}
+                        >
+                          #{idx + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <h3 className="font-heading text-xl" style={{ color: 'var(--light)' }}>
+                              {cr.name}
+                            </h3>
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                              style={{ background: colors.badge, color: colors.fg }}
+                            >
+                              {cr.threatLevel}
+                            </span>
+                          </div>
+                          <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
+                            {cr.summary}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </>
+          )}
 
         <div className="gold-divider mb-14" />
 

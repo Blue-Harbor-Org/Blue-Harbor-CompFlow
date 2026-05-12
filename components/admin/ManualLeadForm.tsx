@@ -127,9 +127,15 @@ export default function ManualLeadForm() {
 
       <div className="grid grid-cols-2 gap-5">
         <div>
-          <label className="label">Competitor URL *</label>
+          <label className="label">
+            Competitor URL{' '}
+            <span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>
+              (optional — auto-found if empty)
+            </span>
+          </label>
           <input
-            type="url" required value={form.competitor_url}
+            type="url"
+            value={form.competitor_url}
             onChange={(e) => update('competitor_url', e.target.value)}
             className="input"
             placeholder="https://competitor.com"

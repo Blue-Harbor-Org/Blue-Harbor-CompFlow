@@ -2,26 +2,25 @@
 @import "tailwindcss";
 
 :root {
-  --navy:        #050c1a;
-  --navy2:       #091428;
-  --navy3:       #0d1f3c;
-  --gold:        #d4a843;
-  --gold2:       #f0c76a;
-  --gold-dim:    rgba(212,168,67,0.15);
-  --silver:      #8fa8c8;
-  --light:       #e8edf5;
-  --muted:       #5a7294;
-  --green:       #2ecc8a;
-  --red:         #e05050;
-  --card:        rgba(10,30,60,0.6);
-  --border:      rgba(100,140,200,0.15);
-  --border-gold: rgba(212,168,67,0.25);
-  --background:  #050c1a;
-  --foreground:  #e8edf5;
-  /* Admin chrome (headers, drawer scrim) — overridden in light theme */
-  --admin-sticky-bg: rgba(5, 12, 26, 0.96);
-  --admin-drawer-scrim: rgba(5, 12, 26, 0.85);
-  --admin-drawer-shadow: -8px 0 32px rgba(0, 0, 0, 0.45);
+  --navy:        #0b1425;
+  --navy2:       #101e34;
+  --navy3:       #182a46;
+  --gold:        #e5b84a;
+  --gold2:       #f2cc60;
+  --gold-dim:    rgba(229,184,74,0.14);
+  --silver:      #9cb3d4;
+  --light:       #edf1f7;
+  --muted:       #7490b3;
+  --green:       #34d399;
+  --red:         #f06060;
+  --card:        rgba(16,35,62,0.65);
+  --border:      rgba(100,160,230,0.18);
+  --border-gold: rgba(229,184,74,0.28);
+  --background:  #0b1425;
+  --foreground:  #edf1f7;
+  --admin-sticky-bg: rgba(11, 20, 37, 0.97);
+  --admin-drawer-scrim: rgba(5, 12, 26, 0.80);
+  --admin-drawer-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
 }
 
 /* ─── Admin panel light mode (scoped under .admin-theme-scope) ─── */
@@ -33,41 +32,70 @@
 
 /* Light theme inputs */
 .admin-theme-scope[data-admin-theme="light"] .input {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(15, 23, 42, 0.15);
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.18);
   color: var(--light);
 }
 
 .admin-theme-scope[data-admin-theme="light"] .input:focus {
-  border-color: var(--border-gold);
-  box-shadow: 0 0 0 3px rgba(154, 114, 9, 0.09);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(154, 109, 10, 0.12);
 }
 
 .admin-theme-scope[data-admin-theme="light"] {
   color-scheme: light;
-  --navy:        #eef1f8;
-  --navy2:       #e4e9f2;
-  --navy3:       #d9e0ed;
-  --gold:        #9a7209;
-  --gold2:       #b8890c;
-  --gold-dim:    rgba(154, 114, 9, 0.12);
-  --silver:      #3d4f66;
+  --navy:        #f7f8fb;
+  --navy2:       #eef1f6;
+  --navy3:       #e2e7f0;
+  --gold:        #9a6d0a;
+  --gold2:       #b58310;
+  --gold-dim:    rgba(154,109,10,0.10);
+  --silver:      #475569;
   --light:       #0f172a;
   --muted:       #64748b;
-  --green:       #0f766e;
-  --red:         #b91c1c;
-  --card:        rgba(255, 255, 255, 0.92);
-  --border:      rgba(15, 23, 42, 0.12);
-  --border-gold: rgba(154, 114, 9, 0.35);
-  --background:  #eef1f8;
+  --green:       #059669;
+  --red:         #dc2626;
+  --card:        #ffffff;
+  --border:      rgba(15, 23, 42, 0.13);
+  --border-gold: rgba(154, 109, 10, 0.25);
+  --background:  #f7f8fb;
   --foreground:  #0f172a;
-  --admin-sticky-bg: rgba(238, 241, 248, 0.97);
-  --admin-drawer-scrim: rgba(15, 23, 42, 0.35);
-  --admin-drawer-shadow: -8px 0 28px rgba(15, 23, 42, 0.08);
+  --admin-sticky-bg: rgba(247, 248, 251, 0.97);
+  --admin-drawer-scrim: rgba(15, 23, 42, 0.30);
+  --admin-drawer-shadow: -8px 0 28px rgba(15, 23, 42, 0.10);
 }
 
 .admin-theme-scope[data-admin-theme="dark"] {
   color-scheme: dark;
+}
+
+/* Light mode: elevate cards with subtle shadows for depth */
+.admin-theme-scope[data-admin-theme="light"] .card,
+.admin-theme-scope[data-admin-theme="light"] .card-gold,
+.admin-theme-scope[data-admin-theme="light"] .card-interactive {
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.admin-theme-scope[data-admin-theme="light"] .card-interactive:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+}
+
+/* Light mode: danger button text contrast */
+.admin-theme-scope[data-admin-theme="light"] .btn-danger {
+  font-weight: 700;
+}
+
+/* Light mode: scrollbar */
+.admin-theme-scope[data-admin-theme="light"] ::-webkit-scrollbar-track {
+  background: var(--navy2);
+}
+
+.admin-theme-scope[data-admin-theme="light"] ::-webkit-scrollbar-thumb {
+  background: var(--navy3);
+}
+
+.admin-theme-scope[data-admin-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 
 * {
@@ -159,7 +187,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--gold2);
   border-color: var(--gold2);
   transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(212,168,67,0.28);
+  box-shadow: 0 8px 24px rgba(229,184,74,0.30);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -215,15 +243,15 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
-  background: rgba(224,80,80,0.12);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
   color: var(--red);
-  border: 1px solid rgba(224,80,80,0.3);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
   transition: all 0.18s ease;
   outline: none;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: rgba(224,80,80,0.22);
+  background: color-mix(in srgb, var(--red) 22%, transparent);
   border-color: var(--red);
 }
 
@@ -256,8 +284,8 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(5,12,26,0.97) 35%,
-    rgba(5,12,26,1) 100%
+    rgba(11,20,37,0.97) 35%,
+    rgba(11,20,37,1) 100%
   );
   z-index: 10;
 }
@@ -302,7 +330,7 @@ input, textarea, select {
   padding: 10px 14px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: rgba(13, 31, 60, 0.8);
+  background: rgba(16, 35, 62, 0.7);
   color: var(--light);
   font-family: 'Syne', sans-serif;
   font-size: 15px;
@@ -315,7 +343,7 @@ input, textarea, select {
 
 .input:focus {
   border-color: var(--border-gold);
-  box-shadow: 0 0 0 3px rgba(212, 168, 67, 0.09);
+  box-shadow: 0 0 0 3px rgba(229, 184, 74, 0.10);
 }
 
 .input::placeholder {
@@ -359,15 +387,15 @@ input, textarea, select {
 }
 
 .badge-green {
-  background: rgba(46,204,138,0.12);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
   color: var(--green);
-  border: 1px solid rgba(46,204,138,0.3);
+  border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
 }
 
 .badge-red {
-  background: rgba(224,80,80,0.12);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
   color: var(--red);
-  border: 1px solid rgba(224,80,80,0.3);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
 }
 
 .badge-muted {
@@ -378,8 +406,8 @@ input, textarea, select {
 
 /* Pulse animation for loading */
 @keyframes pulse-gold {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(212,168,67,0.4); }
-  50% { opacity: 0.8; box-shadow: 0 0 0 16px rgba(212,168,67,0); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(229,184,74,0.4); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 16px rgba(229,184,74,0); }
 }
 
 .pulse-gold {

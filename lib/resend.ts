@@ -18,19 +18,19 @@ function emailBase(content: string) {
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background-color: #050c1a; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #e8edf5; }
+  body { background-color: #0b1425; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #edf1f7; }
   .wrapper { max-width: 580px; margin: 0 auto; padding: 40px 20px; }
-  .logo { font-size: 22px; font-weight: 700; color: #d4a843; letter-spacing: 0.05em; margin-bottom: 32px; }
-  .divider { height: 1px; background: linear-gradient(90deg, transparent, #d4a843, transparent); opacity: 0.4; margin: 28px 0; }
-  .heading { font-size: 26px; font-weight: 700; color: #e8edf5; margin-bottom: 16px; line-height: 1.3; }
-  .body-text { font-size: 15px; line-height: 1.7; color: #8fa8c8; margin-bottom: 20px; }
-  .finding { padding: 14px 18px; background: rgba(10,30,60,0.6); border-left: 3px solid; border-radius: 6px; margin-bottom: 12px; }
-  .finding-high { border-color: #e05050; }
-  .finding-med { border-color: #d4a843; }
-  .finding-title { font-size: 14px; font-weight: 600; color: #e8edf5; }
-  .btn { display: inline-block; background: #d4a843; color: #050c1a; padding: 14px 28px; border-radius: 6px; font-weight: 700; font-size: 15px; text-decoration: none; margin: 24px 0; }
-  .footer { font-size: 13px; color: #5a7294; margin-top: 40px; }
-  .footer-tagline { color: #d4a843; font-weight: 600; }
+  .logo { font-size: 22px; font-weight: 700; color: #e5b84a; letter-spacing: 0.05em; margin-bottom: 32px; }
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, #e5b84a, transparent); opacity: 0.4; margin: 28px 0; }
+  .heading { font-size: 26px; font-weight: 700; color: #edf1f7; margin-bottom: 16px; line-height: 1.3; }
+  .body-text { font-size: 15px; line-height: 1.7; color: #9cb3d4; margin-bottom: 20px; }
+  .finding { padding: 14px 18px; background: rgba(16,35,62,0.65); border-left: 3px solid; border-radius: 6px; margin-bottom: 12px; }
+  .finding-high { border-color: #f06060; }
+  .finding-med { border-color: #e5b84a; }
+  .finding-title { font-size: 14px; font-weight: 600; color: #edf1f7; }
+  .btn { display: inline-block; background: #e5b84a; color: #0b1425; padding: 14px 28px; border-radius: 6px; font-weight: 700; font-size: 15px; text-decoration: none; margin: 24px 0; }
+  .footer { font-size: 13px; color: #7490b3; margin-top: 40px; }
+  .footer-tagline { color: #e5b84a; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -61,7 +61,7 @@ export async function sendReportReadyEmail(
 
   const content = `
     <div class="heading">Your report is ready, ${firstName}.</div>
-    <p class="body-text">We analyzed <strong style="color:#e8edf5">${businessName}</strong> against <strong style="color:#e8edf5">${competitorName}</strong> and found 3 things you need to know:</p>
+    <p class="body-text">We analyzed <strong style="color:#edf1f7">${businessName}</strong> against <strong style="color:#edf1f7">${competitorName}</strong> and found 3 things you need to know:</p>
 
     ${findings.map((f, i) => `
       <div class="finding ${i === 0 ? 'finding-high' : 'finding-med'}">
@@ -98,7 +98,7 @@ export async function sendUnlockEmail(
     <div class="heading" style="font-size:22px;margin-top:-8px">Your full competitive strategy report is live.</div>
 
     <p class="body-text">Inside you'll find:</p>
-    <ul style="margin:0 0 20px 0;padding-left:20px;color:#8fa8c8;line-height:2">
+    <ul style="margin:0 0 20px 0;padding-left:20px;color:#9cb3d4;line-height:2">
       <li>How you compare to ${competitorName} across 12 categories</li>
       <li>Your top competitive advantages right now</li>
       <li>The market opportunities ${competitorName} is missing</li>
@@ -107,7 +107,7 @@ export async function sendUnlockEmail(
 
     <a href="${fullUrl}" class="btn">View Your Full Report →</a>
 
-    <p class="body-text">Talk soon,<br/><strong style="color:#e8edf5">Blue Harbor</strong></p>
+    <p class="body-text">Talk soon,<br/><strong style="color:#edf1f7">Blue Harbor</strong></p>
   `;
 
   return getResend().emails.send({
@@ -125,9 +125,9 @@ export async function sendDeepDiveUnlocked(lead: Lead, deepDiveUrl: string) {
     <div class="heading">Your full deep-dive competitive report is ready</div>
     <p class="body-text">${lead.contact_name.split(' ')[0]} —</p>
     <p class="body-text">Great talking with you. Based on our conversation, we ran a full deep-dive competitive
-      analysis on <strong style="color:#e8edf5">${lead.business_name}</strong> vs <strong style="color:#e8edf5">${competitorName}</strong>.</p>
+      analysis on <strong style="color:#edf1f7">${lead.business_name}</strong> vs <strong style="color:#edf1f7">${competitorName}</strong>.</p>
     <p class="body-text">This goes beyond the initial report — it includes:</p>
-    <ul style="margin:0 0 20px 0;padding-left:20px;color:#8fa8c8;line-height:2">
+    <ul style="margin:0 0 20px 0;padding-left:20px;color:#9cb3d4;line-height:2">
       <li>Real traffic + keyword framing for both businesses</li>
       <li>Google review / reputation comparison</li>
       <li>Full category competitive breakdown</li>
@@ -163,11 +163,11 @@ export async function sendAdminNotificationEmail(
 
     <div style="background:rgba(10,30,60,0.6);border:1px solid rgba(100,140,200,0.15);border-radius:10px;padding:20px;margin:20px 0">
       <table style="width:100%;border-collapse:collapse">
-        <tr><td style="color:#5a7294;padding:6px 0;font-size:14px">Business</td><td style="color:#e8edf5;font-weight:600;font-size:14px">${businessName}</td></tr>
-        <tr><td style="color:#5a7294;padding:6px 0;font-size:14px">Contact</td><td style="color:#e8edf5;font-size:14px">${contactName}</td></tr>
-        <tr><td style="color:#5a7294;padding:6px 0;font-size:14px">Email</td><td style="color:#e8edf5;font-size:14px">${email}</td></tr>
-        <tr><td style="color:#5a7294;padding:6px 0;font-size:14px">Phone</td><td style="color:#e8edf5;font-size:14px">${phone || 'Not provided'}</td></tr>
-        <tr><td style="color:#5a7294;padding:6px 0;font-size:14px">Competitor</td><td style="color:#e8edf5;font-size:14px">${competitorName || 'Unknown'}</td></tr>
+        <tr><td style="color:#7490b3;padding:6px 0;font-size:14px">Business</td><td style="color:#edf1f7;font-weight:600;font-size:14px">${businessName}</td></tr>
+        <tr><td style="color:#7490b3;padding:6px 0;font-size:14px">Contact</td><td style="color:#edf1f7;font-size:14px">${contactName}</td></tr>
+        <tr><td style="color:#7490b3;padding:6px 0;font-size:14px">Email</td><td style="color:#edf1f7;font-size:14px">${email}</td></tr>
+        <tr><td style="color:#7490b3;padding:6px 0;font-size:14px">Phone</td><td style="color:#edf1f7;font-size:14px">${phone || 'Not provided'}</td></tr>
+        <tr><td style="color:#7490b3;padding:6px 0;font-size:14px">Competitor</td><td style="color:#edf1f7;font-size:14px">${competitorName || 'Unknown'}</td></tr>
       </table>
     </div>
 

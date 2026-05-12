@@ -4,8 +4,8 @@
   "description": "Competitive Intelligence Platform",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#050c1a",
-  "theme_color": "#d4a843",
+  "background_color": "#0b1425",
+  "theme_color": "#e5b84a",
   "orientation": "portrait-primary",
   "icons": [
     {

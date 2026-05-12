@@ -19,6 +19,22 @@ export interface ComparisonRow {
   advantageNote: string;
 }
 
+/** Deep-dive multi-competitor comparison row */
+export interface MultiComparisonRow {
+  category: string;
+  client: string;
+  competitors: { name: string; value: string }[];
+  topCompetitor: string;
+  clientAdvantage: boolean;
+  advantageNote: string;
+}
+
+export interface CompetitorRanking {
+  name: string;
+  threatLevel: 'high' | 'medium' | 'low';
+  summary: string;
+}
+
 export interface Advantage {
   title: string;
   description: string;
@@ -34,6 +50,7 @@ export interface Opportunity {
 export interface Threat {
   title: string;
   description: string;
+  competitorName?: string;
 }
 
 export interface RoadmapStep {
@@ -56,6 +73,8 @@ export interface DeepDiveExtras {
     clientSummary: string;
     competitorSummary: string;
     recommendation: string;
+    /** Per-competitor reputation blurbs when multi-competitor deep dive */
+    competitorSummaries?: { name: string; summary: string }[];
   };
 }
 
@@ -66,6 +85,8 @@ export interface ReportData {
     competitorName: string;
     competitorUrl: string;
     generatedAt: string;
+    /** When deep dive compares multiple competitors */
+    competitors?: { name: string; url: string }[];
   };
   hero: {
     headline: string;
@@ -75,9 +96,10 @@ export interface ReportData {
   overview: {
     clientSummary: string;
     competitorSummary: string;
+    competitorSummaries?: { name: string; summary: string }[];
   };
   topFindings: TopFinding[];
-  comparison: ComparisonRow[];
+  comparison: ComparisonRow[] | MultiComparisonRow[];
   advantages: Advantage[];
   opportunities: Opportunity[];
   threats: Threat[];
@@ -88,6 +110,8 @@ export interface ReportData {
   };
   /** Present on deep-dive deliverables only */
   deepDive?: DeepDiveExtras;
+  /** Deep dive only — ranked competitive threats */
+  competitorRankings?: CompetitorRanking[];
 }
 
 export type ReportType = 'standard' | 'deepdive';

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { normalizeIndustryId } from '@/lib/verticals';
+import { buildCompetitorsForNewLead } from '@/lib/competitorLead';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
       email: string;
       phone?: string;
       website_url: string;
-      competitor_url: string;
+      competitor_url?: string;
       competitor_name?: string;
       notes?: string;
       unlock_immediately?: boolean;
@@ -32,22 +33,24 @@ export async function POST(req: NextRequest) {
       industry,
     } = body;
 
-    if (!contact_name || !business_name || !email || !website_url || !competitor_url) {
+    if (!contact_name || !business_name || !email || !website_url) {
       return NextResponse.json({ error: 'Required fields missing' }, { status: 400 });
     }
 
     const supabase = createAdminClient();
     const industryId = normalizeIndustryId(industry);
 
-    // Duplicate check: same website + competitor within 24 hours
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: existing } = await supabase
+    const { data: candidates } = await supabase
       .from('leads')
-      .select('id, report_token, status')
+      .select('id, report_token, status, competitor_url')
       .eq('website_url', website_url.trim())
-      .eq('competitor_url', competitor_url.trim())
-      .gte('created_at', since)
-      .single();
+      .gte('created_at', since);
+
+    const compNorm = (competitor_url ?? '').trim();
+    const existing = candidates?.find(
+      (l) => (l.competitor_url ?? '').trim() === compNorm
+    );
 
     if (existing) {
       return NextResponse.json({
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || null,
       website_url: website_url.trim(),
-      competitor_url: competitor_url.trim(),
+      competitor_url: competitor_url?.trim() || null,
       competitor_name: competitor_name?.trim() || null,
       notes: notes?.trim() || null,
       source,
@@ -95,9 +98,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
     }
 
-    // If unlock immediately is set (manual lead), auto-unlock after report is ready
+    try {
+      const competitors = await buildCompetitorsForNewLead({
+        websiteUrl: website_url.trim(),
+        competitorUrl: competitor_url,
+        competitorName: competitor_name,
+        industry: industryId,
+      });
+      const first = competitors[0];
+      await supabase
+        .from('leads')
+        .update({
+          competitors,
+          competitor_url: first?.url ?? null,
+          competitor_name: first?.name ?? null,
+        })
+        .eq('id', lead.id);
+    } catch (compErr) {
+      console.error('[submit-form] competitor auto-find failed (lead still created):', compErr);
+    }
+
     if (unlock_immediately) {
-      // We'll handle this in the generate-report flow
       await supabase
         .from('leads')
         .update({ notes: (notes ? notes + '\n' : '') + '[auto-unlock]' })

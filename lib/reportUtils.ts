@@ -1,3 +1,5 @@
+import type { MultiComparisonRow } from '@/types/report';
+
 /** Defensive readers for AI JSON that may use alternate field names across generations. */
 
 function pickString(obj: unknown, keys: string[]): string {
@@ -111,6 +113,19 @@ export function getThreatTitle(threat: unknown): string {
 
 export function getThreatDescription(threat: unknown): string {
   return pickString(threat, ['description', 'body', 'detail', 'summary', 'content']);
+}
+
+export function getThreatCompetitorName(threat: unknown): string {
+  return pickString(threat, ['competitorName', 'competitor', 'fromCompetitor']);
+}
+
+/** Deep-dive multi comparison rows include a competitors array */
+export function isMultiComparisonRows(rows: unknown): rows is MultiComparisonRow[] {
+  if (!Array.isArray(rows) || rows.length === 0) return false;
+  const r = rows[0];
+  if (!r || typeof r !== 'object') return false;
+  const o = r as Record<string, unknown>;
+  return Array.isArray(o.competitors);
 }
 
 export function getRoadmapPhase(step: unknown): string {

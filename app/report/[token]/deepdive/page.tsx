@@ -18,7 +18,7 @@ function Pending() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#050c1a',
+        background: '#0b1425',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -33,13 +33,13 @@ function Pending() {
           style={{
             fontFamily: 'Cormorant Garamond, serif',
             fontSize: 32,
-            color: '#e8edf5',
+            color: '#edf1f7',
             marginBottom: 12,
           }}
         >
           Deep Dive Report Pending
         </h1>
-        <p style={{ color: '#8fa8c8', fontSize: 15, maxWidth: 400, margin: '0 auto' }}>
+        <p style={{ color: '#9cb3d4', fontSize: 15, maxWidth: 400, margin: '0 auto' }}>
           Your deep dive report is being prepared. Check back shortly or wait for our email.
         </p>
       </div>
@@ -52,7 +52,7 @@ function ReadyLocked() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#050c1a',
+        background: '#0b1425',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -67,7 +67,7 @@ function ReadyLocked() {
           style={{
             fontFamily: 'Cormorant Garamond, serif',
             fontSize: 32,
-            color: '#e8edf5',
+            color: '#edf1f7',
             marginBottom: 12,
           }}
         >
@@ -75,7 +75,7 @@ function ReadyLocked() {
         </h1>
         <p
           style={{
-            color: '#8fa8c8',
+            color: '#9cb3d4',
             fontSize: 15,
             maxWidth: 400,
             margin: '0 auto 24px',
@@ -84,7 +84,7 @@ function ReadyLocked() {
           Your full deep dive competitive analysis is complete. You will receive an email with
           access shortly.
         </p>
-        <p style={{ color: '#5a7294', fontSize: 13, marginBottom: 24 }}>
+        <p style={{ color: '#7490b3', fontSize: 13, marginBottom: 24 }}>
           Questions? Reply to your report email or contact Blue Harbor directly.
         </p>
         <Link href="/" className="btn-primary inline-block px-6 py-3 text-sm">

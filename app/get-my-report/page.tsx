@@ -25,8 +25,9 @@ export default function GetMyReportPage() {
               Get Your Free Competitive Analysis
             </h1>
             <p className="text-lg" style={{ color: 'var(--silver)' }}>
-              We&apos;ll analyze your business against your top competitor and send you a
-              personalized report in minutes.
+              We&apos;ll map your competitive landscape (up to three peers) and send you a
+              personalized report in minutes. Add a competitor URL if you already know who to
+              benchmark — or leave it blank and we&apos;ll discover them for you.
             </p>
           </div>
 

@@ -182,7 +182,10 @@ export default function RequestForm() {
 
         <div>
           <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--silver)' }}>
-            Your Competitor&apos;s Website URL *
+            Your Main Competitor&apos;s Website{' '}
+            <span style={{ color: 'var(--muted)', fontWeight: 400 }}>
+              (optional — we can find competitors automatically)
+            </span>
           </label>
           <input
             type="url"
@@ -191,7 +194,6 @@ export default function RequestForm() {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            required
             value={form.competitor_url}
             onChange={(e) => update('competitor_url', e.target.value)}
             className={inputClass}

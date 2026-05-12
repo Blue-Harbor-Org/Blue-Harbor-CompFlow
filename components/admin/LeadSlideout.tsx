@@ -12,6 +12,8 @@ import UnlockButton from '@/components/admin/UnlockButton';
 import DeepDivePanel from '@/components/admin/DeepDivePanel';
 import GenerateReportButton from '@/components/admin/GenerateReportButton';
 import { getPublicSiteUrl } from '@/lib/siteUrl';
+import { parseCompetitors } from '@/lib/competitorLead';
+import CompetitorManager from '@/components/admin/CompetitorManager';
 
 function formatDate(date: string | null | undefined) {
   if (!date) return null;
@@ -61,6 +63,14 @@ export default function LeadSlideout({
 
   if (!lead) return null;
 
+  const competitorPreview =
+    parseCompetitors(lead.competitors)
+      .map((c) => c.name)
+      .filter(Boolean)
+      .join(', ') ||
+    lead.competitor_name ||
+    '';
+
   const base = getPublicSiteUrl();
   const teaserUrl = `${base}/report/${lead.report_token}`;
   const fullUrl = `${base}/report/${lead.report_token}/full?admin=true`;
@@ -95,9 +105,9 @@ export default function LeadSlideout({
               <h2 className="font-heading text-2xl leading-tight" style={{ color: 'var(--light)' }}>
                 {lead.business_name}
               </h2>
-              {lead.competitor_name && (
+              {competitorPreview && (
                 <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
-                  vs {lead.competitor_name}
+                  vs {competitorPreview}
                 </p>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
@@ -186,6 +196,10 @@ export default function LeadSlideout({
                 <div className="mt-5" key={lead.id}>
                   <IndustrySelect leadId={lead.id} currentIndustry={lead.industry ?? 'general'} />
                 </div>
+              </section>
+
+              <section>
+                <CompetitorManager lead={lead} onLeadPatch={onLeadPatch} onRefresh={onRefresh} />
               </section>
 
               <section>

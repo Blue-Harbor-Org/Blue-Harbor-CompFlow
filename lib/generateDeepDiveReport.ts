@@ -1,12 +1,14 @@
 import type { Lead } from '@/types/lead';
+import type { CompetitorEntry } from '@/types/lead';
 import { scrapeMultiPageBundle, scrapeWebsite } from '@/lib/scraper';
 import { getSEOData } from '@/lib/dataForSEO';
 import { getPlacesSummary } from '@/lib/googlePlaces';
-import { analyzeDeepDiveWithClaude } from '@/lib/analyzeDeepDive';
+import { analyzeDeepDiveMultiWithClaude, analyzeDeepDiveWithClaude } from '@/lib/analyzeDeepDive';
 import type { ReportData } from '@/types/report';
 import { DEEP_CONFIG, type ReportConfig } from '@/lib/reportConfig';
 import type { SEOData } from '@/lib/dataForSEO';
 import type { PlacesData } from '@/lib/googlePlaces';
+import { getResolvedCompetitors } from '@/lib/competitorLead';
 
 function intelBlock(label: string, obj: unknown): string {
   if (!obj) return `${label}: (none)`;
@@ -45,7 +47,6 @@ export async function generateDeepDiveReport(
   lead: Lead,
   anthropicModelId: string
 ): Promise<ReportData> {
-  // Deep dive always runs full intel pipeline regardless of per-lead toggles.
   const config: ReportConfig = {
     ...DEEP_CONFIG,
     multiPage: true,
@@ -55,58 +56,53 @@ export async function generateDeepDiveReport(
     model: anthropicModelId,
   };
 
-  console.log('[GenerateDeepDive] running with config:', config);
-  console.log('[GenerateDeepDive] DATAFORSEO_LOGIN set:', !!process.env.DATAFORSEO_LOGIN);
-  console.log('[GenerateDeepDive] GOOGLE_PLACES_API_KEY set:', !!process.env.GOOGLE_PLACES_API_KEY);
+  const comps = getResolvedCompetitors(lead);
+  if (comps.length === 0) {
+    throw new Error('No competitors found for this lead — add at least one competitor.');
+  }
 
-  console.log('[GenerateDeepDive] starting for lead:', lead.id, lead.business_name);
-  console.log('[GenerateDeepDive] model:', anthropicModelId);
-  console.log('[GenerateDeepDive] scraping client:', lead.website_url);
-  console.log('[GenerateDeepDive] scraping competitor:', lead.competitor_url);
+  console.log('[GenerateDeepDive] competitors:', comps.length, comps.map((c) => c.url));
+
+  const industry =
+    typeof lead.industry === 'string' && lead.industry.length > 0 ? lead.industry : 'general';
+
+  if (comps.length === 1) {
+    return runSingleCompetitorDeepDive(lead, comps[0], config, anthropicModelId, industry);
+  }
+
+  return runMultiCompetitorDeepDive(lead, comps, config, anthropicModelId, industry);
+}
+
+async function runSingleCompetitorDeepDive(
+  lead: Lead,
+  primary: CompetitorEntry,
+  config: ReportConfig,
+  anthropicModelId: string,
+  industry: string
+): Promise<ReportData> {
+  console.log('[GenerateDeepDive] single path · client:', lead.website_url, '· competitor:', primary.url);
 
   const [clientContent, competitorContent] = await Promise.all([
-    config.multiPage
-      ? scrapeMultiPageBundle(lead.website_url)
-      : scrapeWebsite(lead.website_url),
-    config.multiPage
-      ? scrapeMultiPageBundle(lead.competitor_url)
-      : scrapeWebsite(lead.competitor_url),
+    config.multiPage ? scrapeMultiPageBundle(lead.website_url) : scrapeWebsite(lead.website_url),
+    config.multiPage ? scrapeMultiPageBundle(primary.url) : scrapeWebsite(primary.url),
   ]);
-
-  console.log('[GenerateDeepDive] client scrape chars:', clientContent.length);
-  console.log('[GenerateDeepDive] competitor scrape chars:', competitorContent.length);
-  console.log('[GenerateDeepDive] fetching SEO + Places intel...');
 
   const [seoClient, seoComp, placesClient, placesComp] = await Promise.all([
     config.seoData
       ? (await getSEOData(lead.website_url)) ?? (await seoSkipped(lead.website_url))
       : seoSkipped(lead.website_url),
     config.seoData
-      ? (await getSEOData(lead.competitor_url)) ?? (await seoSkipped(lead.competitor_url))
-      : seoSkipped(lead.competitor_url),
+      ? (await getSEOData(primary.url)) ?? (await seoSkipped(primary.url))
+      : seoSkipped(primary.url),
     config.googleReviews
       ? (await getPlacesSummary(lead.website_url, lead.business_name)) ??
         (await placesSkipped(lead.website_url, lead.business_name))
       : placesSkipped(lead.website_url, lead.business_name),
     config.googleReviews
-      ? (await getPlacesSummary(
-          lead.competitor_url,
-          lead.competitor_name || 'Competitor'
-        )) ??
-        (await placesSkipped(
-          lead.competitor_url,
-          lead.competitor_name || 'Competitor'
-        ))
-      : placesSkipped(
-          lead.competitor_url,
-          lead.competitor_name || 'Competitor'
-        ),
+      ? (await getPlacesSummary(primary.url, primary.name)) ??
+        (await placesSkipped(primary.url, primary.name))
+      : placesSkipped(primary.url, primary.name),
   ]);
-
-  console.log('[GenerateDeepDive] seoClient result:', seoClient ? `got data` : 'null');
-  console.log('[GenerateDeepDive] seoComp result:', seoComp ? `got data` : 'null');
-  console.log('[GenerateDeepDive] placesClient result:', placesClient ? `got data` : 'null');
-  console.log('[GenerateDeepDive] placesComp result:', placesComp ? `got data` : 'null');
 
   const baseIntel = [
     intelBlock('SEO_CLIENT', seoClient),
@@ -123,19 +119,7 @@ export async function generateDeepDiveReport(
   }
 
   const enriched = baseIntel.join('\n\n');
-
-  console.log('[GenerateDeepDive] enrichedIntel chars:', enriched.length);
-  console.log('[GenerateDeepDive] enrichedIntel preview:', enriched.slice(0, 300));
-
-  const industry =
-    typeof lead.industry === 'string' && lead.industry.length > 0
-      ? lead.industry
-      : 'general';
-
-  const competitorName = lead.competitor_name || lead.competitor_url;
-
-  console.log('[GenerateDeepDive] industry:', industry, '| competitorName:', competitorName);
-  console.log('[GenerateDeepDive] calling Claude...');
+  const competitorName = primary.name || primary.url;
 
   const result = await analyzeDeepDiveWithClaude(
     clientContent,
@@ -143,15 +127,87 @@ export async function generateDeepDiveReport(
     lead.business_name,
     lead.website_url,
     competitorName,
-    lead.competitor_url,
+    primary.url,
     enriched,
     industry,
     anthropicModelId
   );
 
-  console.log('[GenerateDeepDive] Claude done. topFindings count:', result.topFindings?.length);
-  console.log('[GenerateDeepDive] topFindings[0] keys:', result.topFindings?.[0] ? Object.keys(result.topFindings[0]).join(', ') : 'none');
-  console.log('[GenerateDeepDive] deepDive present:', !!result.deepDive);
-
   return result;
+}
+
+async function runMultiCompetitorDeepDive(
+  lead: Lead,
+  comps: CompetitorEntry[],
+  config: ReportConfig,
+  anthropicModelId: string,
+  industry: string
+): Promise<ReportData> {
+  console.log('[GenerateDeepDive] multi path · scraping', comps.length, 'competitors');
+
+  const [clientContent, ...competitorContents] = await Promise.all([
+    config.multiPage ? scrapeMultiPageBundle(lead.website_url) : scrapeWebsite(lead.website_url),
+    ...comps.map((c) =>
+      config.multiPage ? scrapeMultiPageBundle(c.url) : scrapeWebsite(c.url)
+    ),
+  ]);
+
+  const [seoClient, ...seoCompetitors] = await Promise.all([
+    config.seoData
+      ? (await getSEOData(lead.website_url)) ?? (await seoSkipped(lead.website_url))
+      : seoSkipped(lead.website_url),
+    ...comps.map((c) =>
+      config.seoData
+        ? getSEOData(c.url).then(async (r) => r ?? (await seoSkipped(c.url)))
+        : seoSkipped(c.url)
+    ),
+  ]);
+
+  const [placesClient, ...placesCompetitors] = await Promise.all([
+    config.googleReviews
+      ? (await getPlacesSummary(lead.website_url, lead.business_name)) ??
+        (await placesSkipped(lead.website_url, lead.business_name))
+      : placesSkipped(lead.website_url, lead.business_name),
+    ...comps.map((c) =>
+      config.googleReviews
+        ? getPlacesSummary(c.url, c.name).then(
+            async (r) => r ?? (await placesSkipped(c.url, c.name))
+          )
+        : placesSkipped(c.url, c.name)
+    ),
+  ]);
+
+  const baseIntel: string[] = [
+    intelBlock('SEO_CLIENT', seoClient),
+    intelBlock('PLACES_REVIEWS_CLIENT', placesClient),
+  ];
+
+  comps.forEach((c, i) => {
+    baseIntel.push(intelBlock(`SEO_COMPETITOR_${i + 1}_${c.name}`, seoCompetitors[i]));
+    baseIntel.push(intelBlock(`PLACES_REVIEWS_COMPETITOR_${i + 1}_${c.name}`, placesCompetitors[i]));
+  });
+
+  if (config.adminIntel) {
+    const ci = lead.client_intel;
+    const co = lead.competitor_intel;
+    if (ci) baseIntel.push(intelBlock('ADMIN_CLIENT_INTEL', ci));
+    if (co) baseIntel.push(intelBlock('ADMIN_COMPETITOR_INTEL', co));
+  }
+
+  const enriched = baseIntel.join('\n\n');
+
+  const competitorInputs = comps.map((entry, i) => ({
+    entry,
+    content: competitorContents[i] ?? '',
+  }));
+
+  return analyzeDeepDiveMultiWithClaude(
+    clientContent,
+    lead.business_name,
+    lead.website_url,
+    competitorInputs,
+    enriched,
+    industry,
+    anthropicModelId
+  );
 }
