@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import type { Client, TeamMember } from '@/types/dashboard';
+import type { Report } from '@/types/report';
 
 interface Props {
   client: Client;
   currentMember: TeamMember;
+  standardReport: Report | null;
+  deepdiveReport: Report | null;
 }
 
-export default function ClientOverviewTab({ client, currentMember }: Props) {
+export default function ClientOverviewTab({ client, currentMember, standardReport, deepdiveReport }: Props) {
   const [notes, setNotes] = useState(client.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -68,6 +71,89 @@ export default function ClientOverviewTab({ client, currentMember }: Props) {
           className="input resize-y"
           style={{ fontSize: '13px', lineHeight: '1.6' }}
         />
+      </div>
+
+      {/* Report Links */}
+      <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          Standard Report
+        </h3>
+        {standardReport ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>Status</span>
+              <span className="text-xs font-medium" style={{ color: standardReport.report_data ? 'var(--green)' : 'var(--gold)' }}>
+                {standardReport.report_data ? '✓ Generated' : '⟳ Generating...'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>Unlocked</span>
+              <span className="text-xs font-medium" style={{ color: standardReport.is_unlocked ? 'var(--green)' : 'var(--muted)' }}>
+                {standardReport.is_unlocked ? '✓ Yes' : '✗ Locked'}
+              </span>
+            </div>
+            {client.report_token && (
+              <div className="space-y-2 pt-2">
+                <a
+                  href={`/report/${client.report_token}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full rounded-lg px-3 py-2 text-center text-xs font-semibold transition-colors"
+                  style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+                >
+                  View Teaser Report
+                </a>
+                <a
+                  href={`/report/${client.report_token}/full?admin=true`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full rounded-lg px-3 py-2 text-center text-xs font-semibold transition-colors"
+                  style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+                >
+                  Preview Full Report (Admin)
+                </a>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>No standard report generated yet.</p>
+        )}
+      </div>
+
+      {/* Deep Dive */}
+      <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          Deep Dive Report
+        </h3>
+        {deepdiveReport ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>Status</span>
+              <span className="text-xs font-medium" style={{ color: deepdiveReport.report_data ? 'var(--green)' : 'var(--gold)' }}>
+                {deepdiveReport.report_data ? '✓ Generated' : '⟳ Generating...'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>Unlocked</span>
+              <span className="text-xs font-medium" style={{ color: deepdiveReport.is_unlocked ? 'var(--green)' : 'var(--muted)' }}>
+                {deepdiveReport.is_unlocked ? '✓ Yes' : '✗ Locked'}
+              </span>
+            </div>
+            {client.report_token && (
+              <a
+                href={`/report/${client.report_token}/deepdive`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full rounded-lg px-3 py-2 text-center text-xs font-semibold transition-colors"
+                style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+              >
+                View Deep Dive Report
+              </a>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>No deep dive report generated yet.</p>
+        )}
       </div>
 
       {/* Competitors */}

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { Client, TeamMember, ActivityLogEntry, PipelineStatus } from '@/types/dashboard';
+import type { Report } from '@/types/report';
 import { PIPELINE_COLUMNS } from '@/types/dashboard';
 import { Avatar } from '@/components/admin/DashboardShell';
 import { StatusBadge } from '@/components/admin/ClientTableView';
@@ -18,9 +19,11 @@ interface Props {
   teamMembers: TeamMember[];
   currentMember: TeamMember;
   activityLog: ActivityLogEntry[];
+  standardReport: Report | null;
+  deepdiveReport: Report | null;
 }
 
-export default function ClientDetailView({ client: initialClient, teamMembers, currentMember, activityLog }: Props) {
+export default function ClientDetailView({ client: initialClient, teamMembers, currentMember, activityLog, standardReport, deepdiveReport }: Props) {
   const [client, setClient] = useState(initialClient);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [assignedTo, setAssignedTo] = useState(client.assigned_to ?? '');
@@ -141,7 +144,7 @@ export default function ClientDetailView({ client: initialClient, teamMembers, c
       {/* Tab content */}
       <div>
         {activeTab === 'overview' && (
-          <ClientOverviewTab client={client} currentMember={currentMember} />
+          <ClientOverviewTab client={client} currentMember={currentMember} standardReport={standardReport} deepdiveReport={deepdiveReport} />
         )}
         {activeTab === 'intake' && <ClientIntakeTab client={client} />}
         {activeTab === 'proposal' && <ClientProposalTab client={client} />}
