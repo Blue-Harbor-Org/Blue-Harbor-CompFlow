@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { Client, TeamMember, ActivityLogEntry, PipelineStatus } from '@/types/dashboard';
 import type { Report } from '@/types/report';
+import type { IntakeData } from '@/components/admin/ClientIntakeTab';
 import { PIPELINE_COLUMNS } from '@/types/dashboard';
 import { Avatar } from '@/components/admin/DashboardShell';
 import { StatusBadge } from '@/components/admin/ClientTableView';
@@ -11,8 +12,21 @@ import ClientOverviewTab from '@/components/admin/ClientOverviewTab';
 import ClientIntakeTab from '@/components/admin/ClientIntakeTab';
 import ClientProposalTab from '@/components/admin/ClientProposalTab';
 import ClientActivityTab from '@/components/admin/ClientActivityTab';
+import ClientWebsiteTab from '@/components/admin/ClientWebsiteTab';
 
-type Tab = 'overview' | 'intake' | 'proposal' | 'activity';
+type Tab = 'overview' | 'intake' | 'proposal' | 'website' | 'activity';
+
+export interface MockupRow {
+  id: string;
+  client_id: string;
+  page_slug: string;
+  page_title: string;
+  html_content: string;
+  preview_token: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Props {
   client: Client;
@@ -21,13 +35,19 @@ interface Props {
   activityLog: ActivityLogEntry[];
   standardReport: Report | null;
   deepdiveReport: Report | null;
+  intake: IntakeData | null;
+  mockups: MockupRow[];
 }
 
-export default function ClientDetailView({ client: initialClient, teamMembers, currentMember, activityLog, standardReport, deepdiveReport }: Props) {
+export default function ClientDetailView({
+  client: initialClient, teamMembers, currentMember, activityLog,
+  standardReport, deepdiveReport, intake, mockups: initialMockups,
+}: Props) {
   const [client, setClient] = useState(initialClient);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [assignedTo, setAssignedTo] = useState(client.assigned_to ?? '');
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [mockups, setMockups] = useState(initialMockups);
 
   const handleStatusChange = useCallback(async (newStatus: PipelineStatus) => {
     setStatusUpdating(true);
@@ -57,12 +77,12 @@ export default function ClientDetailView({ client: initialClient, teamMembers, c
     { key: 'overview', label: 'Overview' },
     { key: 'intake', label: 'Intake Data' },
     { key: 'proposal', label: 'Proposal' },
+    { key: 'website', label: 'Website' },
     { key: 'activity', label: 'Activity Log' },
   ];
 
   return (
     <div className="p-4 md:p-6">
-      {/* Back link */}
       <Link
         href="/dashboard"
         className="mb-4 inline-flex items-center gap-1 text-xs font-medium transition-colors hover:underline"
@@ -89,7 +109,6 @@ export default function ClientDetailView({ client: initialClient, teamMembers, c
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Status dropdown */}
             <select
               value={client.pipeline_status}
               onChange={(e) => handleStatusChange(e.target.value as PipelineStatus)}
@@ -102,7 +121,6 @@ export default function ClientDetailView({ client: initialClient, teamMembers, c
               ))}
             </select>
 
-            {/* Assign dropdown */}
             <div className="flex items-center gap-2">
               <span className="text-xs" style={{ color: 'var(--muted)' }}>Assigned:</span>
               <select
@@ -146,8 +164,9 @@ export default function ClientDetailView({ client: initialClient, teamMembers, c
         {activeTab === 'overview' && (
           <ClientOverviewTab client={client} currentMember={currentMember} standardReport={standardReport} deepdiveReport={deepdiveReport} />
         )}
-        {activeTab === 'intake' && <ClientIntakeTab client={client} />}
+        {activeTab === 'intake' && <ClientIntakeTab client={client} intake={intake} />}
         {activeTab === 'proposal' && <ClientProposalTab client={client} />}
+        {activeTab === 'website' && <ClientWebsiteTab client={client} mockups={mockups} onMockupsChange={setMockups} />}
         {activeTab === 'activity' && <ClientActivityTab activityLog={activityLog} />}
       </div>
     </div>

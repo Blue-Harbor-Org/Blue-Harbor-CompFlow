@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Client, TeamMember } from '@/types/dashboard';
 import type { Report } from '@/types/report';
 
@@ -36,16 +36,16 @@ export default function ClientOverviewTab({ client, currentMember, standardRepor
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      {/* Key stats */}
+      {/* Key Info — editable */}
       <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
           Key Info
         </h3>
         <dl className="space-y-3">
-          <InfoRow label="Company" value={client.business_name} />
-          <InfoRow label="Contact" value={client.contact_name} />
-          <InfoRow label="Email" value={client.email} isLink />
-          <InfoRow label="Phone" value={client.phone ?? '—'} />
+          <EditableField clientId={client.id} field="company_name" label="Company" initialValue={client.business_name} />
+          <EditableField clientId={client.id} field="contact_name" label="Contact" initialValue={client.contact_name} />
+          <EditableField clientId={client.id} field="contact_email" label="Email" initialValue={client.email} isLink />
+          <EditableField clientId={client.id} field="contact_phone" label="Phone" initialValue={client.phone ?? ''} />
           <InfoRow label="Website" value={client.website_url} isLink />
           <InfoRow label="Industry" value={client.industry || 'General'} />
           <InfoRow label="Source" value={client.source} />
@@ -174,6 +174,76 @@ export default function ClientOverviewTab({ client, currentMember, standardRepor
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function EditableField({
+  clientId, field, label, initialValue, isLink,
+}: {
+  clientId: string; field: string; label: string; initialValue: string; isLink?: boolean;
+}) {
+  const [value, setValue] = useState(initialValue);
+  const [editing, setEditing] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const save = useCallback(async (newVal: string) => {
+    if (newVal === initialValue) { setEditing(false); return; }
+    setStatus('saving');
+    await fetch('/api/dashboard/update-client', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId, fields: { [field]: newVal } }),
+    });
+    setStatus('saved');
+    setEditing(false);
+    setTimeout(() => setStatus('idle'), 2000);
+  }, [clientId, field, initialValue]);
+
+  useEffect(() => {
+    if (editing && inputRef.current) inputRef.current.focus();
+  }, [editing]);
+
+  if (editing) {
+    return (
+      <div className="flex items-start justify-between gap-4">
+        <dt className="shrink-0 text-xs pt-1.5" style={{ color: 'var(--muted)' }}>{label}</dt>
+        <dd className="flex-1 max-w-[200px]">
+          <input
+            ref={inputRef}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onBlur={() => save(value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') save(value); if (e.key === 'Escape') { setValue(initialValue); setEditing(false); } }}
+            className="w-full rounded px-2 py-1 text-right text-xs outline-none"
+            style={{ background: 'var(--navy3)', border: '1px solid var(--border-gold)', color: 'var(--light)' }}
+          />
+        </dd>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex items-start justify-between gap-4 group cursor-pointer rounded px-1 -mx-1 transition-colors hover:bg-white/5"
+      onClick={() => setEditing(true)}
+    >
+      <dt className="shrink-0 text-xs" style={{ color: 'var(--muted)' }}>
+        {label}
+        {status === 'saved' && <span className="ml-1 text-[10px]" style={{ color: 'var(--green)' }}>✓</span>}
+      </dt>
+      <dd className="text-right text-xs font-medium" style={{ color: 'var(--light)', wordBreak: 'break-all' }}>
+        {isLink && value && value !== '—' ? (
+          <span onClick={(e) => e.stopPropagation()}>
+            <a href={value.startsWith('http') ? value : `mailto:${value}`} target="_blank" rel="noopener"
+              className="hover:underline" style={{ color: 'var(--gold)' }}>
+              {value || '—'}
+            </a>
+          </span>
+        ) : (value || '—')}
+        <span className="ml-2 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--muted)' }}>✎</span>
+      </dd>
     </div>
   );
 }

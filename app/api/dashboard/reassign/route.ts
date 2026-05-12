@@ -1,26 +1,18 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { createAdminClient } from '@/lib/supabase';
 import { logActivity } from '@/lib/dashboard';
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const admin = createAdminClient();
-  const { data: currentMember } = await admin
-    .from('team_members')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (!currentMember) return NextResponse.json({ error: 'Not a team member' }, { status: 403 });
+  const auth = await requireTeamMember();
+  if (isAuthError(auth)) return auth;
 
   const { clientId, memberId } = await request.json();
   if (!clientId) return NextResponse.json({ error: 'Missing clientId' }, { status: 400 });
 
+  const admin = createAdminClient();
   const { error } = await admin
-    .from('leads')
+    .from('bh_clients')
     .update({ assigned_to: memberId || null })
     .eq('id', clientId);
 
@@ -28,20 +20,20 @@ export async function POST(request: Request) {
 
   if (memberId) {
     const { data: assignedMember } = await admin
-      .from('team_members')
-      .select('full_name')
-      .eq('id', memberId)
+      .from('bh_team_members')
+      .select('name')
+      .eq('user_id', memberId)
       .maybeSingle();
 
     await logActivity(
       clientId,
-      currentMember.id,
+      auth.user.id,
       'assignment',
-      `Assigned to ${assignedMember?.full_name ?? 'team member'}`,
+      `Assigned to ${assignedMember?.name ?? 'team member'}`,
       { assigned_to: memberId }
     );
   } else {
-    await logActivity(clientId, currentMember.id, 'assignment', 'Unassigned from team member');
+    await logActivity(clientId, auth.user.id, 'assignment', 'Unassigned from team member');
   }
 
   return NextResponse.json({ ok: true });

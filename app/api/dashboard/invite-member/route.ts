@@ -1,31 +1,20 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { requireAdmin, isAuthError } from '@/lib/auth-guard';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await requireAdmin();
+  if (isAuthError(auth)) return auth;
 
-  const admin = createAdminClient();
-
-  const { data: currentMember } = await admin
-    .from('team_members')
-    .select('id, role')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!currentMember || currentMember.role !== 'admin') {
-    return NextResponse.json({ error: 'Only admins can invite members' }, { status: 403 });
-  }
-
-  const { email, full_name, role } = await request.json();
-  if (!email || !full_name) {
+  const { email, name, role } = await request.json();
+  if (!email || !name) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+
   const { data: existing } = await admin
-    .from('team_members')
+    .from('bh_team_members')
     .select('id')
     .eq('email', email)
     .maybeSingle();
@@ -35,10 +24,10 @@ export async function POST(request: Request) {
   }
 
   const { data: member, error } = await admin
-    .from('team_members')
+    .from('bh_team_members')
     .insert({
       email,
-      full_name,
+      name,
       role: role || 'member',
       user_id: null,
     })
