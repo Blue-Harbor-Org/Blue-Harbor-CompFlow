@@ -46,7 +46,7 @@ export default function ClientTableView({ clients }: Props) {
             <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Company</th>
             <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Status</th>
             <th className="hidden px-4 py-3 text-xs font-semibold uppercase tracking-wide md:table-cell" style={{ color: 'var(--muted)' }}>Assigned</th>
-            <th className="hidden px-4 py-3 text-xs font-semibold uppercase tracking-wide md:table-cell" style={{ color: 'var(--muted)' }}>Days</th>
+            <th className="hidden px-4 py-3 text-xs font-semibold uppercase tracking-wide md:table-cell" style={{ color: 'var(--muted)' }}>Added</th>
             <th className="hidden px-4 py-3 text-xs font-semibold uppercase tracking-wide lg:table-cell" style={{ color: 'var(--muted)' }}>Contact</th>
           </tr>
         </thead>
@@ -65,6 +65,11 @@ export default function ClientTableView({ clients }: Props) {
                     {client.business_name}
                   </div>
                   <div className="text-xs" style={{ color: 'var(--muted)' }}>{client.contact_name}</div>
+                  {client.report_summary && (
+                    <div className="mt-1 max-w-md truncate text-[11px]" style={{ color: 'var(--muted)' }}>
+                      {client.report_summary}
+                    </div>
+                  )}
                 </Link>
               </td>
               <td className="px-4 py-3">
@@ -75,7 +80,7 @@ export default function ClientTableView({ clients }: Props) {
                   <div className="flex items-center gap-2">
                     <Avatar member={client.assigned_member} size={22} />
                     <span className="text-xs" style={{ color: 'var(--silver)' }}>
-                      {client.assigned_member.full_name.split(' ')[0]}
+                      {client.assigned_member.full_name}
                     </span>
                   </div>
                 ) : (
@@ -83,7 +88,8 @@ export default function ClientTableView({ clients }: Props) {
                 )}
               </td>
               <td className="hidden px-4 py-3 text-xs md:table-cell" style={{ color: 'var(--silver)' }}>
-                {daysSince(client.status_changed_at)}d
+                <div>{new Date(client.created_at).toLocaleDateString()}</div>
+                <div style={{ color: 'var(--muted)' }}>{daysSince(client.status_changed_at)}d in status</div>
               </td>
               <td className="hidden px-4 py-3 text-xs lg:table-cell" style={{ color: 'var(--muted)' }}>
                 {client.email}

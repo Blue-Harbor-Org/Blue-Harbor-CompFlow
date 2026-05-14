@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import type { Client, TeamMember, ActivityLogEntry, PipelineStatus } from '@/types/dashboard';
 import type { Report } from '@/types/report';
 import type { ClientIntakeRecord } from '@/types/client-intake';
@@ -16,12 +17,18 @@ import ClientWebsiteTab from '@/components/admin/ClientWebsiteTab';
 
 type Tab = 'overview' | 'intake' | 'proposal' | 'website' | 'activity';
 
+function isTab(value: string | null): value is Tab {
+  return value === 'overview' || value === 'intake' || value === 'proposal' || value === 'website' || value === 'activity';
+}
+
 export interface MockupRow {
   id: string;
   client_id: string;
   page_slug: string;
   page_title: string;
   html_content: string;
+  archetypeId?: string;
+  archetypeName?: string;
   preview_token: string;
   version: number;
   created_at: string;
@@ -43,9 +50,14 @@ export default function ClientDetailView({
   client: initialClient, teamMembers, currentMember, activityLog,
   standardReport, deepdiveReport, intake, mockups: initialMockups,
 }: Props) {
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get('tab');
   const [client, setClient] = useState(initialClient);
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>(() => (isTab(requestedTab) ? requestedTab : 'overview'));
   const [assignedTo, setAssignedTo] = useState(client.assigned_to ?? '');
+  const [assignSaving, setAssignSaving] = useState(false);
+  const [assignSaved, setAssignSaved] = useState(false);
+  const [assignError, setAssignError] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [mockups, setMockups] = useState(initialMockups);
 
@@ -62,16 +74,36 @@ export default function ClientDetailView({
     setStatusUpdating(false);
   }, [client.id]);
 
-  const handleReassign = useCallback(async (memberId: string) => {
-    setAssignedTo(memberId);
-    await fetch('/api/dashboard/reassign', {
+  const handleReassign = useCallback(async (memberUserId: string) => {
+    const previousAssignedTo = assignedTo;
+    const previousMember = client.assigned_member ?? null;
+    const nextMember = teamMembers.find((m) => m.user_id === memberUserId) ?? null;
+
+    setAssignSaving(true);
+    setAssignSaved(false);
+    setAssignError('');
+    setAssignedTo(memberUserId);
+    setClient((c) => ({ ...c, assigned_to: memberUserId || null, assigned_member: nextMember }));
+
+    const res = await fetch('/api/dashboard/reassign', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId: client.id, memberId: memberId || null }),
+      body: JSON.stringify({ clientId: client.id, memberId: memberUserId || null }),
     });
-    const member = teamMembers.find((m) => m.id === memberId) ?? null;
-    setClient((c) => ({ ...c, assigned_to: memberId || null, assigned_member: member }));
-  }, [client.id, teamMembers]);
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({ error: 'Failed to save assignment' })) as { error?: string };
+      setAssignedTo(previousAssignedTo);
+      setClient((c) => ({ ...c, assigned_to: previousAssignedTo || null, assigned_member: previousMember }));
+      setAssignError(json.error ?? 'Failed to save assignment');
+      setAssignSaving(false);
+      return;
+    }
+
+    setAssignSaving(false);
+    setAssignSaved(true);
+    setTimeout(() => setAssignSaved(false), 2000);
+  }, [assignedTo, client.assigned_member, client.id, teamMembers]);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
@@ -126,15 +158,28 @@ export default function ClientDetailView({
               <select
                 value={assignedTo}
                 onChange={(e) => handleReassign(e.target.value)}
+                disabled={assignSaving}
                 className="input w-auto"
                 style={{ fontSize: '12px', padding: '6px 10px' }}
               >
                 <option value="">Unassigned</option>
-                {teamMembers.map((m) => (
-                  <option key={m.id} value={m.id}>{m.full_name}</option>
-                ))}
+                {teamMembers
+                  .filter((m) => Boolean(m.user_id))
+                  .map((m) => (
+                    <option key={m.id} value={m.user_id ?? ''}>{m.full_name}</option>
+                  ))}
               </select>
               {client.assigned_member && <Avatar member={client.assigned_member} size={24} />}
+              {assignSaved && (
+                <span className="text-xs font-medium" style={{ color: 'var(--green)' }}>
+                  Saved
+                </span>
+              )}
+              {assignError && (
+                <span className="text-xs font-medium" style={{ color: 'var(--red)' }}>
+                  {assignError}
+                </span>
+              )}
             </div>
           </div>
         </div>

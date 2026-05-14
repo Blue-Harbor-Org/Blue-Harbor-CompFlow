@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createBrowserClient } from '@/lib/supabase';
 import type { CompetitorEntry, Lead } from '@/types/lead';
 import { parseCompetitors } from '@/lib/competitorLead';
@@ -12,14 +12,33 @@ interface Props {
 }
 
 export default function CompetitorManager({ lead, onLeadPatch, onRefresh }: Props) {
-  const [competitors, setCompetitors] = useState<CompetitorEntry[]>(() =>
-    parseCompetitors(lead.competitors).slice(0, 3)
+  const competitorsSourceKey = JSON.stringify(lead.competitors ?? []);
+  const sourceCompetitors = useMemo(
+    () => parseCompetitors(lead.competitors).slice(0, 3),
+    [lead.competitors]
   );
+  const [competitorDraft, setCompetitorDraft] = useState<{
+    leadId: string;
+    sourceKey: string;
+    value: CompetitorEntry[];
+  }>(() => ({
+    leadId: lead.id,
+    sourceKey: competitorsSourceKey,
+    value: sourceCompetitors,
+  }));
+  const competitors =
+    competitorDraft.leadId === lead.id && competitorDraft.sourceKey === competitorsSourceKey
+      ? competitorDraft.value
+      : sourceCompetitors;
   const [finding, setFinding] = useState(false);
 
-  useEffect(() => {
-    setCompetitors(parseCompetitors(lead.competitors).slice(0, 3));
-  }, [lead.id, lead.competitors]);
+  const setCompetitors = useCallback((next: CompetitorEntry[] | ((prev: CompetitorEntry[]) => CompetitorEntry[])) => {
+    setCompetitorDraft({
+      leadId: lead.id,
+      sourceKey: competitorsSourceKey,
+      value: typeof next === 'function' ? next(competitors) : next,
+    });
+  }, [competitors, competitorsSourceKey, lead.id]);
 
   const persist = useCallback(
     async (next: CompetitorEntry[]) => {

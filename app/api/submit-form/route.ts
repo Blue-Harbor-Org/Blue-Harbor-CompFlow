@@ -82,7 +82,17 @@ export async function POST(req: NextRequest) {
         String(error.message ?? '').includes("'industry'"));
 
     if (industryColumnMissing) {
-      const { industry: _, ...withoutIndustry } = row;
+      const withoutIndustry = {
+        contact_name: row.contact_name,
+        business_name: row.business_name,
+        email: row.email,
+        phone: row.phone,
+        website_url: row.website_url,
+        competitor_url: row.competitor_url,
+        competitor_name: row.competitor_name,
+        notes: row.notes,
+        source: row.source,
+      };
       const retry = await supabase.from('leads').insert(withoutIndustry).select().single();
       lead = retry.data;
       error = retry.error;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import type { Lead } from '@/types/lead';
 import type { Report } from '@/types/report';
 import StatusBadge from '@/components/admin/StatusBadge';
@@ -46,11 +47,10 @@ export default function LeadSlideout({
   onLeadPatch,
   onRefresh,
 }: Props) {
-  const [tab, setTab] = useState<'overview' | 'report' | 'notes'>('overview');
-
-  useEffect(() => {
-    if (open) setTab('overview');
-  }, [open, lead?.id]);
+  const [tabState, setTabState] = useState<{
+    leadId: string | null;
+    tab: 'overview' | 'report' | 'notes';
+  }>({ leadId: null, tab: 'overview' });
 
   useEffect(() => {
     if (!open) return;
@@ -62,6 +62,8 @@ export default function LeadSlideout({
   }, [open, onClose]);
 
   if (!lead) return null;
+
+  const tab = open && tabState.leadId === lead.id ? tabState.tab : 'overview';
 
   const competitorPreview =
     parseCompetitors(lead.competitors)
@@ -153,7 +155,7 @@ export default function LeadSlideout({
                   color: tab === id ? 'var(--gold)' : 'var(--muted)',
                   border: tab === id ? '1px solid var(--border-gold)' : '1px solid transparent',
                 }}
-                onClick={() => setTab(id)}
+                onClick={() => setTabState({ leadId: lead.id, tab: id })}
               >
                 {label}
               </button>
@@ -256,6 +258,12 @@ export default function LeadSlideout({
                 >
                   📋 Copy full report link
                 </button>
+                <Link
+                  href={`/dashboard/clients/${lead.id}?tab=website`}
+                  className="btn-primary min-h-[44px] w-full py-3 text-center text-sm"
+                >
+                  Generate Mockup
+                </Link>
                 {lead.phone && (
                   <a href={`tel:${lead.phone.replace(/\s/g, '')}`} className="btn-primary min-h-[44px] w-full py-3 text-center text-sm">
                     📞 Call {lead.phone}

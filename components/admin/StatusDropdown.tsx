@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { LeadStatus } from '@/types/lead';
 
@@ -29,13 +29,15 @@ export default function StatusDropdown({
   refreshAfterChange = true,
 }: Props) {
   const router = useRouter();
-  const [status, setStatus] = useState<LeadStatus>(currentStatus);
+  const [optimisticStatus, setOptimisticStatus] = useState<{
+    leadId: string;
+    status: LeadStatus;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setStatus(currentStatus);
-  }, [currentStatus]);
+  const status = optimisticStatus?.leadId === leadId ? optimisticStatus.status : currentStatus;
 
   const current = statuses.find((s) => s.value === status);
 
@@ -43,8 +45,9 @@ export default function StatusDropdown({
     const newStatus = e.target.value as LeadStatus;
     const previous = status;
     setError(null);
+    setSaved(false);
     setSaving(true);
-    setStatus(newStatus);
+    setOptimisticStatus({ leadId, status: newStatus });
 
     try {
       const res = await fetch('/api/lead-status', {
@@ -55,15 +58,17 @@ export default function StatusDropdown({
       const data = (await res.json()) as { error?: string };
 
       if (!res.ok) {
-        setStatus(previous);
+        setOptimisticStatus({ leadId, status: previous });
         setError(data.error ?? 'Could not update status');
         return;
       }
 
       onChange?.(newStatus);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
       if (refreshAfterChange) router.refresh();
     } catch {
-      setStatus(previous);
+      setOptimisticStatus({ leadId, status: previous });
       setError('Network error — try again');
     } finally {
       setSaving(false);
@@ -94,6 +99,11 @@ export default function StatusDropdown({
       {error && (
         <p className="mt-2 text-xs" style={{ color: 'var(--red)' }}>
           {error}
+        </p>
+      )}
+      {saved && (
+        <p className="mt-2 text-xs font-medium" style={{ color: 'var(--green)' }}>
+          Saved
         </p>
       )}
     </div>

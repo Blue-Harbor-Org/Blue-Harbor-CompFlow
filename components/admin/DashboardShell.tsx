@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
@@ -24,9 +25,12 @@ function pathMatches(pathname: string, href: string): boolean {
 function Avatar({ member, size = 32 }: { member: TeamMember | null; size?: number }) {
   if (member?.avatar_url) {
     return (
-      <img
+      <Image
         src={member.avatar_url}
         alt={member.full_name}
+        width={size}
+        height={size}
+        unoptimized
         style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
       />
     );

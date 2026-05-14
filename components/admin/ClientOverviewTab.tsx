@@ -22,20 +22,27 @@ export default function ClientOverviewTab({
   deepdiveReport,
 }: Props) {
   const router = useRouter();
-  const [notes, setNotes] = useState(client.notes ?? '');
+  const initialNotes = client.notes ?? '';
+  const [notesDraft, setNotesDraft] = useState({
+    clientId: client.id,
+    initial: initialNotes,
+    value: initialNotes,
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [mockupGenerating, setMockupGenerating] = useState(false);
+  const [mockupSaved, setMockupSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  useEffect(() => {
-    setNotes(client.notes ?? '');
-  }, [client.notes]);
+  const notes =
+    notesDraft.clientId === client.id && notesDraft.initial === initialNotes
+      ? notesDraft.value
+      : initialNotes;
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
-      if (notes === (client.notes ?? '')) return;
+      if (notes === initialNotes) return;
       setSaving(true);
       await fetch('/api/dashboard/update-notes', {
         method: 'POST',
@@ -50,7 +57,7 @@ export default function ClientOverviewTab({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [notes, client.id, client.notes, currentMember.id]);
+  }, [notes, client.id, initialNotes, currentMember.id]);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -60,6 +67,27 @@ export default function ClientOverviewTab({
   const showStandardGenerate = canRunReportActions && !standardReport;
   const showStandardUnlock = canRunReportActions && Boolean(standardReport) && !standardReport?.is_unlocked;
   const showDeepDive = canRunReportActions && Boolean(client.report_token);
+
+  const regenerateMockup = useCallback(async () => {
+    setMockupGenerating(true);
+    setMockupSaved(false);
+    const res = await fetch('/api/dashboard/generate-mockup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: client.id,
+        pageSlug: 'home',
+        industry: client.industry,
+        competitorUrl: client.competitor_url ?? undefined,
+      }),
+    });
+    setMockupGenerating(false);
+    if (res.ok) {
+      setMockupSaved(true);
+      router.refresh();
+      setTimeout(() => setMockupSaved(false), 2000);
+    }
+  }, [client.competitor_url, client.id, client.industry, router]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -79,7 +107,9 @@ export default function ClientOverviewTab({
       <Card title="Team Notes" actionLabel={saving ? 'Saving...' : saved ? 'Saved' : ''} actionColor={saving ? 'var(--gold)' : saved ? 'var(--green)' : 'transparent'}>
         <textarea
           value={notes}
-          onChange={(event) => setNotes(event.target.value)}
+          onChange={(event) =>
+            setNotesDraft({ clientId: client.id, initial: initialNotes, value: event.target.value })
+          }
           placeholder="Add notes visible to the team..."
           rows={8}
           className="input resize-y"
@@ -155,6 +185,27 @@ export default function ClientOverviewTab({
             No deep dive report generated yet.
           </p>
         )}
+      </Card>
+
+      <Card
+        title="Website Mockup"
+        actionLabel={mockupGenerating ? 'Generating...' : mockupSaved ? 'Saved' : ''}
+        actionColor={mockupGenerating ? 'var(--gold)' : mockupSaved ? 'var(--green)' : 'transparent'}
+      >
+        <div className="space-y-3">
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            Generate or refresh the homepage mockup with the uniqueness-first design engine.
+          </p>
+          <button
+            type="button"
+            onClick={() => void regenerateMockup()}
+            disabled={mockupGenerating}
+            className="w-full rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+            style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+          >
+            {mockupGenerating ? 'Generating mockup...' : 'Regenerate mockup'}
+          </button>
+        </div>
       </Card>
 
       {showDeepDive && client.lead_id && (
@@ -259,14 +310,17 @@ function EditableField({
   isLink?: boolean;
 }) {
   const router = useRouter();
-  const [value, setValue] = useState(initialValue);
+  const [draft, setDraft] = useState({
+    initialValue,
+    value: initialValue,
+  });
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setValue(initialValue);
+  const value = draft.initialValue === initialValue ? draft.value : initialValue;
+  const setValue = useCallback((nextValue: string) => {
+    setDraft({ initialValue, value: nextValue });
   }, [initialValue]);
 
   const save = useCallback(async (nextValue: string) => {

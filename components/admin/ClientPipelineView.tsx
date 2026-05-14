@@ -23,6 +23,10 @@ export default function ClientPipelineView({ initialClients, teamMembers }: Prop
     if (typeof window === 'undefined') return 'table';
     return (localStorage.getItem(VIEW_PREF_KEY) as 'table' | 'kanban') || 'table';
   });
+  const memberByUserId = useMemo(
+    () => new Map(teamMembers.filter((m) => m.user_id).map((m) => [m.user_id, m])),
+    [teamMembers]
+  );
 
   useEffect(() => {
     localStorage.setItem(VIEW_PREF_KEY, viewMode);
@@ -34,15 +38,23 @@ export default function ClientPipelineView({ initialClients, teamMembers }: Prop
       .channel('pipeline-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'leads' },
+        { event: '*', schema: 'public', table: 'bh_clients' },
         (payload) => {
           if (payload.eventType === 'UPDATE' && payload.new) {
-            setClients((prev) =>
-              prev.map((c) => (c.id === (payload.new as Client).id ? { ...c, ...payload.new } : c))
-            );
+            const next = payload.new as { id?: string; status?: PipelineStatus; assigned_to?: string | null; created_at?: string };
+            setClients((prev) => prev.map((c) => {
+              if (c.id !== next.id) return c;
+              return {
+                ...c,
+                pipeline_status: next.status ?? c.pipeline_status,
+                assigned_to: next.assigned_to ?? null,
+                assigned_member: next.assigned_to ? memberByUserId.get(next.assigned_to) ?? null : null,
+                status_changed_at: c.status_changed_at ?? next.created_at ?? c.created_at,
+              };
+            }));
           }
           if (payload.eventType === 'INSERT' && payload.new) {
-            setClients((prev) => [payload.new as Client, ...prev]);
+            return;
           }
           if (payload.eventType === 'DELETE' && payload.old) {
             const id = (payload.old as { id?: string }).id;
@@ -53,7 +65,7 @@ export default function ClientPipelineView({ initialClients, teamMembers }: Prop
       .subscribe();
 
     return () => { void sb.removeChannel(channel); };
-  }, []);
+  }, [memberByUserId]);
 
   const filteredClients = useMemo(() => {
     let rows = [...clients];
@@ -137,9 +149,11 @@ export default function ClientPipelineView({ initialClients, teamMembers }: Prop
             style={{ fontSize: '13px', padding: '8px 12px', maxWidth: 180 }}
           >
             <option value="all">All members</option>
-            {teamMembers.map((m) => (
-              <option key={m.id} value={m.id}>{m.full_name}</option>
-            ))}
+            {teamMembers
+              .filter((m) => Boolean(m.user_id))
+              .map((m) => (
+                <option key={m.id} value={m.user_id ?? ''}>{m.full_name}</option>
+              ))}
           </select>
         </div>
 

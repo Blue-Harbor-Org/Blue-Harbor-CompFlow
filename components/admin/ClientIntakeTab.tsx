@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Client } from '@/types/dashboard';
 import type { ClientIntakeRecord } from '@/types/client-intake';
@@ -164,14 +164,17 @@ function IntakeField({
 }) {
   const router = useRouter();
   const displayVal = value != null ? String(value) : '';
-  const [localVal, setLocalVal] = useState(displayVal);
+  const [draft, setDraft] = useState({
+    source: displayVal,
+    value: displayVal,
+  });
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    setLocalVal(displayVal);
+  const localVal = draft.source === displayVal ? draft.value : displayVal;
+  const setLocalVal = useCallback((nextValue: string) => {
+    setDraft({ source: displayVal, value: nextValue });
   }, [displayVal]);
 
   const save = useCallback(async () => {

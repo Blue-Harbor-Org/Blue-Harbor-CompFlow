@@ -93,7 +93,7 @@ export async function scrapeMultiPageBundle(baseUrl: string): Promise<string> {
 
 /** Stitch labeled chunks and enforce global max */
 export function trimForTokens(labeledChunks: string[]): string {
-  let combined = labeledChunks.join('\n\n');
+  const combined = labeledChunks.join('\n\n');
   if (combined.length <= MAX_TOTAL_CHARS) return combined;
 
   const overflow = combined.length - MAX_TOTAL_CHARS;

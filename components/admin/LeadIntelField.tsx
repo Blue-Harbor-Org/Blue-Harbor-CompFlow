@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { createBrowserClient } from '@/lib/supabase';
 
 interface Props {
@@ -12,13 +12,21 @@ interface Props {
 }
 
 export default function LeadIntelField({ leadId, field, initial, label, placeholder }: Props) {
-  const [value, setValue] = useState(initial ?? '');
+  const initialValue = initial ?? '';
+  const [draft, setDraft] = useState({
+    leadId,
+    initialValue,
+    value: initialValue,
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    setValue(initial ?? '');
-  }, [initial, leadId]);
+  const value =
+    draft.leadId === leadId && draft.initialValue === initialValue
+      ? draft.value
+      : initialValue;
+  const setValue = useCallback((nextValue: string) => {
+    setDraft({ leadId, initialValue, value: nextValue });
+  }, [initialValue, leadId]);
 
   async function handleBlur() {
     setSaving(true);

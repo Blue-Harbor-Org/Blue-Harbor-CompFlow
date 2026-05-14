@@ -1,15 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { Client } from '@/types/dashboard';
 import type { MockupRow } from '@/components/admin/ClientDetailView';
+import { selectArchetypeForIndustry } from '@/lib/mockup-archetypes';
 
-const AVAILABLE_PAGES = [
-  { slug: 'home', label: 'Landing Page' },
-  { slug: 'about', label: 'About Us' },
-  { slug: 'services', label: 'Services' },
-  { slug: 'contact', label: 'Contact' },
-] as const;
+type FlowStep = 'info' | 'generating' | 'preview' | 'approved';
 
 interface Props {
   client: Client;
@@ -17,186 +13,281 @@ interface Props {
   onMockupsChange: (mockups: MockupRow[]) => void;
 }
 
+function readArchetypeMeta(html: string, key: 'id' | 'name') {
+  const metaName = key === 'id' ? 'bh-archetype-id' : 'bh-archetype-name';
+  return html.match(new RegExp(`<meta\\s+name=["']${metaName}["']\\s+content=["']([^"']+)["']`, 'i'))?.[1];
+}
+
+function getArchetypeId(mockup: MockupRow | null) {
+  return mockup ? mockup.archetypeId ?? readArchetypeMeta(mockup.html_content, 'id') : undefined;
+}
+
+function getArchetypeName(mockup: MockupRow | null) {
+  return mockup ? mockup.archetypeName ?? readArchetypeMeta(mockup.html_content, 'name') ?? 'Custom' : 'Custom';
+}
+
 export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: Props) {
-  const [generating, setGenerating] = useState<string | null>(null);
+  const [step, setStep] = useState<FlowStep>(mockups[0] ? 'preview' : 'info');
   const [selectedMockup, setSelectedMockup] = useState<MockupRow | null>(mockups[0] ?? null);
+  const [form, setForm] = useState({
+    businessName: client.business_name,
+    industry: client.industry || 'general',
+    websiteUrl: client.website_url || '',
+    competitorUrl: client.competitor_url || '',
+    vibeNotes: '',
+  });
+  const [activeArchetype, setActiveArchetype] = useState<{
+    id: string;
+    name: string;
+  } | null>(
+    selectedMockup
+      ? { id: getArchetypeId(selectedMockup) ?? '', name: getArchetypeName(selectedMockup) }
+      : null
+  );
   const [copied, setCopied] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const existingSlugs = new Set(mockups.map((m) => m.page_slug));
+  const updateMockupList = useCallback((mockup: MockupRow) => {
+    const updated = mockups.filter((m) => m.page_slug !== mockup.page_slug);
+    updated.unshift(mockup);
+    onMockupsChange(updated);
+    setSelectedMockup(mockup);
+  }, [mockups, onMockupsChange]);
 
-  const handleGenerate = useCallback(async (pageSlug: string) => {
-    setGenerating(pageSlug);
-    try {
-      const res = await fetch('/api/dashboard/generate-mockup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId: client.id, pageSlug }),
-      });
-      if (res.ok) {
-        const { mockup } = await res.json();
-        const updated = mockups.filter((m) => m.page_slug !== pageSlug);
-        updated.unshift(mockup);
-        onMockupsChange(updated);
-        setSelectedMockup(mockup);
-      }
-    } finally {
-      setGenerating(null);
+  const generateMockup = useCallback(async (previousArchetypeId?: string) => {
+    const archetype = selectArchetypeForIndustry(form.industry, previousArchetypeId);
+    setActiveArchetype({ id: archetype.id, name: archetype.name });
+    setStep('generating');
+
+    const res = await fetch('/api/dashboard/generate-mockup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: client.id,
+        pageSlug: 'home',
+        businessName: form.businessName,
+        industry: form.industry,
+        websiteUrl: form.websiteUrl,
+        competitorUrl: form.competitorUrl || undefined,
+        vibeNotes: form.vibeNotes || undefined,
+        archetypeId: archetype.id,
+        previousArchetypeId,
+      }),
+    });
+
+    if (!res.ok) {
+      setStep(selectedMockup ? 'preview' : 'info');
+      return;
     }
-  }, [client.id, mockups, onMockupsChange]);
 
-  const copyPreviewLink = useCallback((token: string) => {
-    const base = window.location.origin;
-    navigator.clipboard.writeText(`${base}/preview/${token}`);
+    const { mockup, archetypeId, archetypeName } = await res.json() as {
+      mockup: MockupRow;
+      archetypeId: string;
+      archetypeName: string;
+    };
+    const enriched = { ...mockup, archetypeId, archetypeName };
+    setActiveArchetype({ id: archetypeId, name: archetypeName });
+    updateMockupList(enriched);
+    setStep('preview');
+  }, [client.id, form, selectedMockup, updateMockupList]);
+
+  const downloadHtml = useCallback(() => {
+    if (!selectedMockup) return;
+    const blob = new Blob([selectedMockup.html_content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${client.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-mockup.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [client.business_name, selectedMockup]);
+
+  const copyPreviewLink = useCallback(() => {
+    if (!selectedMockup) return;
+    navigator.clipboard.writeText(`${window.location.origin}/preview/${selectedMockup.preview_token}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, []);
+  }, [selectedMockup]);
 
-  if (mockups.length === 0 && !generating) {
+  if (step === 'generating') {
     return (
       <div className="rounded-xl p-8 text-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: 'var(--gold-dim)' }}>
-          <span className="text-2xl">🌐</span>
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full" style={{ background: 'var(--gold-dim)', color: 'var(--gold)' }}>
+          <Spinner />
         </div>
-        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--light)' }}>
-          Website Mockup Generator
+        <h3 className="mb-2 text-lg font-semibold" style={{ color: 'var(--light)' }}>
+          Designing your site in {activeArchetype?.name ?? 'a unique'} style...
         </h3>
-        <p className="text-xs mb-6 max-w-md mx-auto" style={{ color: 'var(--muted)' }}>
-          Generate AI-powered website mockups using the client&apos;s intake data, proposal, and existing site.
-          Start with a landing page and add more pages as needed.
-        </p>
-        <button
-          onClick={() => handleGenerate('home')}
-          disabled={!!generating}
-          className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50"
-          style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+        <div className="mx-auto mt-6 max-w-sm space-y-3 text-left text-sm" style={{ color: 'var(--muted)' }}>
+          <ProgressLine label="Analyzing your current site..." />
+          <ProgressLine label="Generating unique design..." />
+          <ProgressLine label="Building your preview..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'approved') {
+    return (
+      <div className="rounded-xl p-8 text-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="mb-3 text-2xl" style={{ color: 'var(--green)' }}>
+          Design approved ✓
+        </div>
+        <div className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
+          <a
+            href={`/dashboard/clients/${client.id}/proposal`}
+            className="rounded-lg px-4 py-2 text-sm font-semibold"
+            style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+          >
+            Generate Proposal from this mockup →
+          </a>
+          <button
+            type="button"
+            disabled
+            className="rounded-lg px-4 py-2 text-sm font-semibold opacity-60"
+            style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+          >
+            Deploy to preview URL →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'preview' && selectedMockup) {
+    const previousId = getArchetypeId(selectedMockup);
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="rounded-full px-3 py-1 text-xs font-semibold"
+            style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+          >
+            {getArchetypeName(selectedMockup)} style
+          </span>
+          <button
+            type="button"
+            onClick={() => void generateMockup(previousId)}
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+            style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+          >
+            Try different style
+          </button>
+          <button
+            type="button"
+            onClick={() => setStep('approved')}
+            className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+            style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+          >
+            Approve this design →
+          </button>
+        </div>
+
+        <div
+          className="overflow-hidden rounded-xl"
+          style={{ border: '1px solid var(--border)', minHeight: 600 }}
         >
-          {generating ? (
-            <>
-              <Spinner /> Generating Landing Page...
-            </>
-          ) : (
-            'Generate Landing Page'
-          )}
-        </button>
+          <iframe
+            srcDoc={selectedMockup.html_content}
+            title={selectedMockup.page_title}
+            className="h-[600px] w-full border-0"
+            sandbox="allow-scripts allow-same-origin"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={downloadHtml} className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}>
+            Download HTML
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              copyPreviewLink();
+              setSent(true);
+              setTimeout(() => setSent(false), 2000);
+            }}
+            className="rounded-lg px-3 py-2 text-xs font-semibold"
+            style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+          >
+            {sent || copied ? 'Preview link copied' : 'Send to client'}
+          </button>
+          <button type="button" onClick={() => void generateMockup(previousId)} className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}>
+            Regenerate
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Page list + actions */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Existing pages as tabs */}
-        {mockups.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => setSelectedMockup(m)}
-            className="rounded-lg px-3 py-2 text-xs font-semibold transition-all"
-            style={{
-              background: selectedMockup?.id === m.id ? 'var(--gold-dim)' : 'var(--card)',
-              color: selectedMockup?.id === m.id ? 'var(--gold)' : 'var(--muted)',
-              border: `1px solid ${selectedMockup?.id === m.id ? 'var(--border-gold)' : 'var(--border)'}`,
-            }}
-          >
-            {m.page_title}
-            <span className="ml-1.5 text-[10px] opacity-60">v{m.version}</span>
-          </button>
-        ))}
-
-        {/* Add page dropdown */}
-        {AVAILABLE_PAGES.some((p) => !existingSlugs.has(p.slug)) && (
-          <div className="relative group">
-            <button
-              className="rounded-lg px-3 py-2 text-xs font-semibold transition-all"
-              style={{ background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--border)' }}
-            >
-              + Add Page
-            </button>
-            <div
-              className="absolute left-0 top-full mt-1 hidden group-hover:block rounded-lg overflow-hidden z-10 min-w-[160px]"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            >
-              {AVAILABLE_PAGES.filter((p) => !existingSlugs.has(p.slug)).map((p) => (
-                <button
-                  key={p.slug}
-                  onClick={() => handleGenerate(p.slug)}
-                  disabled={!!generating}
-                  className="block w-full text-left px-4 py-2 text-xs font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-                  style={{ color: 'var(--light)' }}
-                >
-                  {generating === p.slug ? 'Generating...' : p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+    <div className="rounded-xl p-5" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+      <div className="mb-5">
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--light)' }}>
+          Business Info
+        </h3>
+        <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+          Confirm the inputs before generating a unique homepage mockup.
+        </p>
       </div>
 
-      {generating && (
-        <div
-          className="flex items-center gap-3 rounded-lg px-4 py-3 text-xs font-medium"
-          style={{ background: 'rgba(212,168,67,0.1)', border: '1px solid rgba(212,168,67,0.3)', color: 'var(--gold)' }}
-        >
-          <Spinner />
-          Generating {generating} page mockup... This may take 15-30 seconds.
-        </div>
-      )}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Field label="Business name">
+          <input className="input" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} />
+        </Field>
+        <Field label="Industry">
+          <input className="input" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} />
+        </Field>
+        <Field label="Their current website">
+          <input className="input" value={form.websiteUrl} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} />
+        </Field>
+        <Field label="Competitor URL (optional)">
+          <input className="input" value={form.competitorUrl} onChange={(e) => setForm({ ...form, competitorUrl: e.target.value })} />
+        </Field>
+        <Field label="Style notes (optional)" className="lg:col-span-2">
+          <textarea
+            className="input min-h-[110px] resize-y"
+            value={form.vibeNotes}
+            onChange={(e) => setForm({ ...form, vibeNotes: e.target.value })}
+            placeholder="Anything specific you want?"
+          />
+        </Field>
+      </div>
 
-      {/* Selected mockup */}
-      {selectedMockup && (
-        <div className="space-y-3">
-          {/* Actions bar */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => handleGenerate(selectedMockup.page_slug)}
-              disabled={!!generating}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50"
-              style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
-            >
-              {generating === selectedMockup.page_slug ? 'Regenerating...' : '↻ Regenerate'}
-            </button>
-            <button
-              onClick={() => copyPreviewLink(selectedMockup.preview_token)}
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-              style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
-            >
-              {copied ? '✓ Copied!' : '🔗 Copy Preview Link'}
-            </button>
-            <a
-              href={`/preview/${selectedMockup.preview_token}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
-              style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
-            >
-              ↗ Open Full Preview
-            </a>
-            <span className="text-[10px] ml-auto" style={{ color: 'var(--muted)' }}>
-              Last updated: {new Date(selectedMockup.updated_at).toLocaleString()}
-            </span>
-          </div>
+      <button
+        type="button"
+        onClick={() => void generateMockup()}
+        className="mt-5 rounded-lg px-5 py-2.5 text-sm font-semibold"
+        style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+      >
+        Generate Mockup →
+      </button>
+    </div>
+  );
+}
 
-          {/* Preview iframe */}
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{ border: '1px solid var(--border)', height: '600px' }}
-          >
-            <iframe
-              srcDoc={selectedMockup.html_content}
-              title={selectedMockup.page_title}
-              className="w-full h-full border-0"
-              sandbox="allow-scripts"
-            />
-          </div>
-        </div>
-      )}
+function Field({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <label className={`block space-y-1.5 ${className}`.trim()}>
+      <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function ProgressLine({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="h-2 w-2 animate-pulse rounded-full" style={{ background: 'var(--gold)' }} />
+      <span>{label}</span>
     </div>
   );
 }
 
 function Spinner() {
   return (
-    <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+    <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
     </svg>

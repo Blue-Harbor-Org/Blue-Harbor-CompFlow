@@ -44,7 +44,6 @@ export async function getClients(): Promise<Client[]> {
   const leadById = new Map(
     (leads ?? []).map(l => [l.id, l])
   );
-
   return (clients ?? []).map(c => {
     const resolvedLeadId =
       (c.report_id ? leadIdByReportId.get(c.report_id) : null) ?? c.id;

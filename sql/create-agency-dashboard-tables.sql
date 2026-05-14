@@ -1,3 +1,7 @@
+-- DEPRECATED: This file provisions the old non-prefixed schema.
+-- Use sql/bh-pipeline-tables.sql instead.
+-- DO NOT run this file against any environment.
+
 -- Team members table
 CREATE TABLE IF NOT EXISTS team_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

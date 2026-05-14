@@ -66,11 +66,11 @@ export default function PipelineFilters({
   debouncedSearch,
   onDebouncedSearchChange,
 }: Props) {
-  const [localSearch, setLocalSearch] = useState(value.search);
-
-  useEffect(() => {
-    setLocalSearch(value.search);
-  }, [value.search]);
+  const [searchDraft, setSearchDraft] = useState({
+    source: value.search,
+    value: value.search,
+  });
+  const localSearch = searchDraft.source === value.search ? searchDraft.value : value.search;
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -84,7 +84,7 @@ export default function PipelineFilters({
     pills.push({
       label: `Search: "${debouncedSearch}"`,
       onClear: () => {
-        setLocalSearch('');
+        setSearchDraft({ source: '', value: '' });
         onChange({ ...value, search: '', statPreset: null });
         onDebouncedSearchChange('');
       },
@@ -141,7 +141,7 @@ export default function PipelineFilters({
             value={localSearch}
             onChange={(e) => {
               const q = e.target.value;
-              setLocalSearch(q);
+              setSearchDraft({ source: value.search, value: q });
               onChange({ ...value, search: q, statPreset: null });
             }}
             placeholder="Search business, contact, email…"
@@ -275,7 +275,7 @@ export default function PipelineFilters({
           <button
             type="button"
             onClick={() => {
-              setLocalSearch('');
+              setSearchDraft({ source: '', value: '' });
               onDebouncedSearchChange('');
               onChange(defaultPipelineFilters());
             }}

@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useState,
   type ReactNode,
 } from 'react';
@@ -30,16 +29,16 @@ export function useAdminTheme() {
 }
 
 export function AdminThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<AdminTheme>('dark');
-
-  useEffect(() => {
+  const [theme, setThemeState] = useState<AdminTheme>(() => {
+    if (typeof window === 'undefined') return 'dark';
     try {
       const stored = localStorage.getItem(STORAGE_KEY) as AdminTheme | null;
-      if (stored === 'light' || stored === 'dark') setThemeState(stored);
+      if (stored === 'light' || stored === 'dark') return stored;
     } catch {
       /* ignore */
     }
-  }, []);
+    return 'dark';
+  });
 
   const setTheme = useCallback((t: AdminTheme) => {
     setThemeState(t);

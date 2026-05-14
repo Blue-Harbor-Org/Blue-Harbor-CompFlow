@@ -59,4 +59,5 @@ export interface Client {
   competitor_name: string | null;
   competitors: { id: string; name: string; url: string; source: string; autoFound: boolean }[] | null;
   assigned_member?: TeamMember | null;
+  report_summary?: string | null;
 }

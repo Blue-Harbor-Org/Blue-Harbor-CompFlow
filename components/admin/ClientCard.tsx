@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { Client } from '@/types/dashboard';
+import { PIPELINE_COLUMNS } from '@/types/dashboard';
 import { Avatar } from '@/components/admin/DashboardShell';
 
 function daysSince(dateStr: string): number {
@@ -16,6 +17,14 @@ function formatDays(days: number): string {
   return `${days} days`;
 }
 
+function statusLabel(status: Client['pipeline_status']) {
+  return PIPELINE_COLUMNS.find((c) => c.status === status)?.label ?? status;
+}
+
+function statusColor(status: Client['pipeline_status']) {
+  return PIPELINE_COLUMNS.find((c) => c.status === status)?.color ?? 'var(--muted)';
+}
+
 interface ClientCardProps {
   client: Client;
   compact?: boolean;
@@ -23,6 +32,7 @@ interface ClientCardProps {
 
 export default function ClientCard({ client, compact }: ClientCardProps) {
   const daysInStatus = daysSince(client.status_changed_at);
+  const color = statusColor(client.pipeline_status);
 
   return (
     <Link
@@ -58,9 +68,24 @@ export default function ClientCard({ client, compact }: ClientCardProps) {
         )}
       </div>
 
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+          style={{ background: `${color}20`, color, border: `1px solid ${color}40` }}
+        >
+          {statusLabel(client.pipeline_status)}
+        </span>
+        <span className="text-[11px] font-medium" style={{ color: 'var(--muted)' }}>
+          Added {new Date(client.created_at).toLocaleDateString()}
+        </span>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-3">
         <span className="text-[11px] font-medium" style={{ color: 'var(--muted)' }}>
           {formatDays(daysInStatus)} in status
+        </span>
+        <span className="truncate text-[11px]" style={{ color: 'var(--silver)' }}>
+          {client.assigned_member ? client.assigned_member.full_name : 'Unassigned'}
         </span>
         {client.industry && client.industry !== 'general' && (
           <span className="truncate text-[11px]" style={{ color: 'var(--silver)' }}>
@@ -68,6 +93,11 @@ export default function ClientCard({ client, compact }: ClientCardProps) {
           </span>
         )}
       </div>
+      {client.report_summary && (
+        <p className="line-clamp-2 text-[11px] leading-5" style={{ color: 'var(--muted)' }}>
+          {client.report_summary}
+        </p>
+      )}
     </Link>
   );
 }

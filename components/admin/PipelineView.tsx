@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createBrowserClient } from '@/lib/supabase';
 import type { Lead, LeadStatus } from '@/types/lead';
 import type { Report } from '@/types/report';
@@ -23,6 +23,16 @@ interface Props {
   initialReportRows: Report[];
 }
 
+function subscribeToWideViewport(callback: () => void) {
+  const mq = window.matchMedia('(min-width: 768px)');
+  mq.addEventListener('change', callback);
+  return () => mq.removeEventListener('change', callback);
+}
+
+function getWideViewportSnapshot() {
+  return typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches;
+}
+
 export default function PipelineView({ initialLeads, initialReportRows }: Props) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [reportMap, setReportMap] = useState<Record<string, LeadReports>>(() =>
@@ -32,19 +42,11 @@ export default function PipelineView({ initialLeads, initialReportRows }: Props)
   const [filters, setFilters] = useState<PipelineFilterState>(() => defaultPipelineFilters());
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [wide, setWide] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)');
-    const fn = () => setWide(mq.matches);
-    fn();
-    mq.addEventListener('change', fn);
-    return () => mq.removeEventListener('change', fn);
-  }, []);
-
-  useEffect(() => {
-    if (!wide && viewMode === 'kanban') setViewMode('list');
-  }, [wide, viewMode]);
+  const wide = useSyncExternalStore(
+    subscribeToWideViewport,
+    getWideViewportSnapshot,
+    () => false
+  );
 
   const refreshLead = useCallback(async (leadId: string) => {
     const sb = createBrowserClient();

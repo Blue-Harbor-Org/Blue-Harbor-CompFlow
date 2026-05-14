@@ -5,6 +5,8 @@ import { createAdminClient } from '@/lib/supabase';
 import { logActivity } from '@/lib/dashboard';
 import { getBhClientContext } from '@/lib/bh-client-context';
 import { getLatestClientIntake } from '@/lib/client-intake';
+import { DESIGN_ARCHETYPES, selectArchetypeForIndustry } from '@/lib/mockup-archetypes';
+import { buildMockupPrompt } from '@/lib/mockup-prompt';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -38,11 +40,48 @@ async function scrapeWebsite(url: string): Promise<string> {
   }
 }
 
+function readArchetypeIdFromHtml(html: string | null | undefined): string | undefined {
+  return html?.match(/<meta\s+name=["']bh-archetype-id["']\s+content=["']([^"']+)["']/i)?.[1];
+}
+
+function injectArchetypeMetadata(html: string, archetypeId: string, archetypeName: string): string {
+  const metadata = [
+    `<meta name="bh-archetype-id" content="${archetypeId}">`,
+    `<meta name="bh-archetype-name" content="${archetypeName}">`,
+  ].join('\n');
+
+  if (html.match(/<\/head>/i)) {
+    return html.replace(/<\/head>/i, `${metadata}\n</head>`);
+  }
+
+  return `${metadata}\n${html}`;
+}
+
 export async function POST(request: Request) {
   const auth = await requireTeamMember();
   if (isAuthError(auth)) return auth;
 
-  const { clientId, pageSlug = 'home' } = await request.json();
+  const {
+    clientId,
+    pageSlug = 'home',
+    businessName,
+    industry: requestedIndustry,
+    websiteUrl: requestedWebsiteUrl,
+    archetypeId,
+    previousArchetypeId,
+    competitorUrl,
+    vibeNotes,
+  } = await request.json() as {
+    clientId?: string;
+    pageSlug?: string;
+    businessName?: string;
+    industry?: string;
+    websiteUrl?: string;
+    archetypeId?: string;
+    previousArchetypeId?: string;
+    competitorUrl?: string;
+    vibeNotes?: string;
+  };
   if (!clientId) return NextResponse.json({ error: 'Missing clientId' }, { status: 400 });
 
   const admin = createAdminClient();
@@ -59,7 +98,7 @@ export async function POST(request: Request) {
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 
   let siteContent = '';
-  const websiteUrl = lead?.website_url;
+  const websiteUrl = requestedWebsiteUrl || lead?.website_url;
   if (websiteUrl) {
     siteContent = await scrapeWebsite(websiteUrl);
   }
@@ -108,45 +147,47 @@ export async function POST(request: Request) {
     contextParts.push(`\nExisting website content (scraped from ${websiteUrl}):\n${siteContent}`);
   }
 
-  const context = contextParts.filter(Boolean).join('\n');
+  const context = [
+    `Requested page: ${pageDesc}`,
+    contextParts.filter(Boolean).join('\n'),
+  ].join('\n\n');
 
-  const systemPrompt = `You are an expert web designer and developer at Blue Harbor, a premium digital marketing agency. You create stunning, modern website mockups as complete HTML pages.
+  const { data: existing } = await admin
+    .from('bh_site_mockups')
+    .select('id, version, html_content')
+    .eq('client_id', clientId)
+    .eq('page_slug', pageSlug)
+    .maybeSingle();
 
-RULES:
-- Return ONLY the complete HTML document — no markdown, no explanation, no code fences
-- The HTML must be fully self-contained with inline <style> in the <head>
-- Use Google Fonts (link in head): Inter for body, Playfair Display for headings
-- Design must be modern, responsive, and professional
-- Use a color scheme that feels premium — navy (#0D1F3C), gold (#D4A843), white, subtle grays
-- Include proper meta viewport tag for mobile
-- Images: use placeholder divs with background colors and descriptive text (no external image URLs)
-- Include smooth scroll behavior and subtle CSS animations
-- Make it look like a real, production-ready website
-- All content must be based on the provided business context — do NOT use lorem ipsum
-- If information is missing, create realistic placeholder content based on the industry`;
-
-  const userPrompt = `Create ${pageDesc} for this business:\n\n${context}\n\nReturn the complete HTML document.`;
+  const industry = requestedIndustry || lead?.industry || 'general';
+  const previousId = previousArchetypeId || readArchetypeIdFromHtml(existing?.html_content);
+  const requestedArchetype = archetypeId
+    ? DESIGN_ARCHETYPES.find((item) => item.id === archetypeId && item.id !== previousId)
+    : undefined;
+  const archetype = requestedArchetype ?? selectArchetypeForIndustry(industry, previousId);
+  const prompt = buildMockupPrompt({
+    businessName: businessName || client.company_name,
+    industry,
+    scrapedContent: context,
+    competitorUrl: competitorUrl || lead?.competitor_url || undefined,
+    vibeNotes,
+    archetype,
+  });
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 8000,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
+    system: prompt.system,
+    messages: [{ role: 'user', content: prompt.user }],
   });
 
   const textBlock = message.content.find((b) => b.type === 'text');
   let html = textBlock?.text ?? '';
 
   html = html.replace(/^```html?\n?/i, '').replace(/\n?```$/i, '').trim();
+  html = injectArchetypeMetadata(html, archetype.id, archetype.name);
 
   const pageTitle = pageSlug.charAt(0).toUpperCase() + pageSlug.slice(1);
-
-  const { data: existing } = await admin
-    .from('bh_site_mockups')
-    .select('id, version')
-    .eq('client_id', clientId)
-    .eq('page_slug', pageSlug)
-    .maybeSingle();
 
   let mockupRow;
   if (existing) {
@@ -177,7 +218,16 @@ RULES:
     mockupRow = data;
   }
 
-  await logActivity(clientId, auth.user.id, 'general', `Generated ${pageTitle} page mockup (v${mockupRow.version})`);
+  await logActivity(clientId, auth.user.id, 'general', `Generated ${pageTitle} page mockup in ${archetype.name} style (v${mockupRow.version})`);
 
-  return NextResponse.json({ mockup: mockupRow });
+  return NextResponse.json({
+    mockup: {
+      ...mockupRow,
+      archetypeId: archetype.id,
+      archetypeName: archetype.name,
+    },
+    html,
+    archetypeId: archetype.id,
+    archetypeName: archetype.name,
+  });
 }
