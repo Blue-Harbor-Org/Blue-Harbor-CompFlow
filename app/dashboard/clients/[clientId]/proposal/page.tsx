@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { getBhClientContext } from '@/lib/bh-client-context';
+import { getLatestClientIntake } from '@/lib/client-intake';
 import AdminShell from '@/components/admin/AdminShell';
 import ProposalBuilder from '@/components/proposal/ProposalBuilder';
 import type { BattlecardRow } from '@/types/proposal';
@@ -22,7 +23,7 @@ export default async function ProposalBuilderPage({ params }: Props) {
   const { client, standardReport } = await getBhClientContext(admin, clientId);
   if (!client) notFound();
 
-  const [{ data: existingProposal }, { data: intake }] = await Promise.all([
+  const [existingProposalResult, intake] = await Promise.all([
     admin
       .from('bh_proposals')
       .select('*')
@@ -30,14 +31,9 @@ export default async function ProposalBuilderPage({ params }: Props) {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    admin
-      .from('bh_intake_submissions')
-      .select('*')
-      .eq('client_id', clientId)
-      .order('submitted_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    getLatestClientIntake(admin, clientId, standardReport?.lead_id ?? null),
   ]);
+  const existingProposal = existingProposalResult.data;
 
   const reportData = standardReport?.report_data
     ? (standardReport.report_data as unknown as Record<string, unknown>)

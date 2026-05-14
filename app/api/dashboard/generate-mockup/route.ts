@@ -3,6 +3,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { createAdminClient } from '@/lib/supabase';
 import { logActivity } from '@/lib/dashboard';
+import { getBhClientContext } from '@/lib/bh-client-context';
+import { getLatestClientIntake } from '@/lib/client-intake';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -45,12 +47,14 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
-  const [{ data: client }, { data: intake }, { data: lead }, { data: proposal }] = await Promise.all([
-    admin.from('bh_clients').select('*').eq('id', clientId).maybeSingle(),
-    admin.from('bh_intake_submissions').select('*').eq('client_id', clientId).order('submitted_at', { ascending: false }).limit(1).maybeSingle(),
-    admin.from('leads').select('*').eq('id', clientId).maybeSingle(),
+  const clientContext = await getBhClientContext(admin, clientId);
+  const [{ data: proposal }, intake] = await Promise.all([
     admin.from('bh_proposals').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    getLatestClientIntake(admin, clientId, clientContext.lead?.id ?? null),
   ]);
+
+  const client = clientContext.client;
+  const lead = clientContext.lead;
 
   if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
 

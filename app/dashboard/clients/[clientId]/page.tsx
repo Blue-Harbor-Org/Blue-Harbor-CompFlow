@@ -6,7 +6,8 @@ import { getBhClientContext } from '@/lib/bh-client-context';
 import DashboardShell from '@/components/admin/DashboardShell';
 import ClientDetailView from '@/components/admin/ClientDetailView';
 import type { Report } from '@/types/report';
-import type { IntakeData } from '@/components/admin/ClientIntakeTab';
+import { getLatestClientIntake } from '@/lib/client-intake';
+import type { ClientIntakeRecord } from '@/types/client-intake';
 
 interface PageProps {
   params: Promise<{ clientId: string }>;
@@ -27,13 +28,13 @@ export default async function ClientDetailPage({ params }: PageProps) {
 
   const [
     client, teamMembers, activityLog,
-    { data: intakeSubmission },
+    intakeSubmission,
     { data: mockups },
   ] = await Promise.all([
     getClient(clientId),
     getTeamMembers(),
     getActivityLog(clientId),
-    admin.from('bh_intake_submissions').select('*').eq('client_id', clientId).order('submitted_at', { ascending: false }).limit(1).maybeSingle(),
+    getLatestClientIntake(admin, clientId, clientContext.lead?.id ?? null),
     admin.from('bh_site_mockups').select('*').eq('client_id', clientId).order('created_at', { ascending: false }),
   ]);
 
@@ -48,7 +49,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
         activityLog={activityLog}
         standardReport={clientContext.standardReport as Report | null}
         deepdiveReport={clientContext.deepdiveReport as Report | null}
-        intake={(intakeSubmission ?? null) as IntakeData | null}
+        intake={(intakeSubmission ?? null) as ClientIntakeRecord | null}
         mockups={(mockups ?? []) as { id: string; client_id: string; page_slug: string; page_title: string; html_content: string; preview_token: string; version: number; created_at: string; updated_at: string }[]}
       />
     </DashboardShell>

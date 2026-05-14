@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
   const { error } = await admin
     .from('bh_clients')
-    .update({ status, notes: `status_changed_at:${new Date().toISOString()}` })
+    .update({ status, status_changed_at: new Date().toISOString() })
     .eq('id', clientId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

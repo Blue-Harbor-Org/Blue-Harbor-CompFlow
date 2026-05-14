@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import type { Client, TeamMember, ActivityLogEntry, PipelineStatus } from '@/types/dashboard';
 import type { Report } from '@/types/report';
-import type { IntakeData } from '@/components/admin/ClientIntakeTab';
+import type { ClientIntakeRecord } from '@/types/client-intake';
 import { PIPELINE_COLUMNS } from '@/types/dashboard';
 import { Avatar } from '@/components/admin/DashboardShell';
 import { StatusBadge } from '@/components/admin/ClientTableView';
@@ -35,7 +35,7 @@ interface Props {
   activityLog: ActivityLogEntry[];
   standardReport: Report | null;
   deepdiveReport: Report | null;
-  intake: IntakeData | null;
+  intake: ClientIntakeRecord | null;
   mockups: MockupRow[];
 }
 

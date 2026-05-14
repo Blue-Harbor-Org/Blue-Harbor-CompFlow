@@ -34,6 +34,7 @@ export async function PATCH(request: Request) {
   for (const [key, value] of Object.entries(fields)) {
     if (ALLOWED_FIELDS.has(key)) updates[key] = value;
   }
+  updates.submitted_at = new Date().toISOString();
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

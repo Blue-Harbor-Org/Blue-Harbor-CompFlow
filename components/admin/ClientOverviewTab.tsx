@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Client, TeamMember } from '@/types/dashboard';
 import type { Report } from '@/types/report';
+import GenerateReportButton from '@/components/admin/GenerateReportButton';
+import UnlockButton from '@/components/admin/UnlockButton';
+import DeepDivePanel from '@/components/admin/DeepDivePanel';
 
 interface Props {
   client: Client;
@@ -11,14 +15,25 @@ interface Props {
   deepdiveReport: Report | null;
 }
 
-export default function ClientOverviewTab({ client, currentMember, standardReport, deepdiveReport }: Props) {
+export default function ClientOverviewTab({
+  client,
+  currentMember,
+  standardReport,
+  deepdiveReport,
+}: Props) {
+  const router = useRouter();
   const [notes, setNotes] = useState(client.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
+    setNotes(client.notes ?? '');
+  }, [client.notes]);
+
+  useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
     debounceRef.current = setTimeout(async () => {
       if (notes === (client.notes ?? '')) return;
       setSaving(true);
@@ -31,175 +46,256 @@ export default function ClientOverviewTab({ client, currentMember, standardRepor
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     }, 1500);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [notes, client.id, client.notes, currentMember.id]);
+
+  const refresh = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
+  const canRunReportActions = Boolean(client.lead_id);
+  const showStandardGenerate = canRunReportActions && !standardReport;
+  const showStandardUnlock = canRunReportActions && Boolean(standardReport) && !standardReport?.is_unlocked;
+  const showDeepDive = canRunReportActions && Boolean(client.report_token);
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      {/* Key Info — editable */}
-      <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-          Key Info
-        </h3>
+      <Card title="Key Info">
         <dl className="space-y-3">
           <EditableField clientId={client.id} field="company_name" label="Company" initialValue={client.business_name} />
           <EditableField clientId={client.id} field="contact_name" label="Contact" initialValue={client.contact_name} />
           <EditableField clientId={client.id} field="contact_email" label="Email" initialValue={client.email} isLink />
           <EditableField clientId={client.id} field="contact_phone" label="Phone" initialValue={client.phone ?? ''} />
-          <InfoRow label="Website" value={client.website_url} isLink />
+          <InfoRow label="Website" value={client.website_url || '-'} isLink />
           <InfoRow label="Industry" value={client.industry || 'General'} />
           <InfoRow label="Source" value={client.source} />
           <InfoRow label="Created" value={new Date(client.created_at).toLocaleDateString()} />
         </dl>
-      </div>
+      </Card>
 
-      {/* Notes */}
-      <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-            Team Notes
-          </h3>
-          <span className="text-[10px] font-medium" style={{ color: saving ? 'var(--gold)' : saved ? 'var(--green)' : 'transparent' }}>
-            {saving ? 'Saving...' : saved ? 'Saved' : '·'}
-          </span>
-        </div>
+      <Card title="Team Notes" actionLabel={saving ? 'Saving...' : saved ? 'Saved' : ''} actionColor={saving ? 'var(--gold)' : saved ? 'var(--green)' : 'transparent'}>
         <textarea
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(event) => setNotes(event.target.value)}
           placeholder="Add notes visible to the team..."
           rows={8}
           className="input resize-y"
           style={{ fontSize: '13px', lineHeight: '1.6' }}
         />
-      </div>
+      </Card>
 
-      {/* Report Links */}
-      <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-          Standard Report
-        </h3>
+      <Card title="Standard Report">
         {standardReport ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>Status</span>
-              <span className="text-xs font-medium" style={{ color: standardReport.report_data ? 'var(--green)' : 'var(--gold)' }}>
-                {standardReport.report_data ? '✓ Generated' : '⟳ Generating...'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>Unlocked</span>
-              <span className="text-xs font-medium" style={{ color: standardReport.is_unlocked ? 'var(--green)' : 'var(--muted)' }}>
-                {standardReport.is_unlocked ? '✓ Yes' : '✗ Locked'}
-              </span>
-            </div>
+            <StatusRow
+              label="Status"
+              value={standardReport.report_data ? 'Generated' : 'Generating...'}
+              color={standardReport.report_data ? 'var(--green)' : 'var(--gold)'}
+            />
+            <StatusRow
+              label="Unlocked"
+              value={standardReport.is_unlocked ? 'Yes' : 'Locked'}
+              color={standardReport.is_unlocked ? 'var(--green)' : 'var(--muted)'}
+            />
+
             {client.report_token && (
               <div className="space-y-2 pt-2">
-                <a
-                  href={`/report/${client.report_token}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full rounded-lg px-3 py-2 text-center text-xs font-semibold transition-colors"
-                  style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
-                >
-                  View Teaser Report
-                </a>
-                <a
-                  href={`/report/${client.report_token}/full?admin=true`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full rounded-lg px-3 py-2 text-center text-xs font-semibold transition-colors"
-                  style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
-                >
-                  Preview Full Report (Admin)
-                </a>
+                <LinkButton href={`/report/${client.report_token}`} label="View Teaser Report" primary />
+                <LinkButton href={`/report/${client.report_token}/full?admin=true`} label="Preview Full Report (Admin)" />
+              </div>
+            )}
+
+            {showStandardUnlock && client.lead_id && (
+              <div className="pt-2">
+                <UnlockButton
+                  leadId={client.lead_id}
+                  email={client.email}
+                  businessName={client.business_name}
+                  onSuccess={refresh}
+                />
               </div>
             )}
           </div>
+        ) : showStandardGenerate && client.lead_id ? (
+          <div className="space-y-3">
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              No standard report has been generated for this client yet.
+            </p>
+            <GenerateReportButton leadId={client.lead_id} onDone={refresh} />
+          </div>
         ) : (
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>No standard report generated yet.</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            No standard report is linked to this client yet.
+          </p>
         )}
-      </div>
+      </Card>
 
-      {/* Deep Dive */}
-      <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-          Deep Dive Report
-        </h3>
+      <Card title="Deep Dive Report">
         {deepdiveReport ? (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>Status</span>
-              <span className="text-xs font-medium" style={{ color: deepdiveReport.report_data ? 'var(--green)' : 'var(--gold)' }}>
-                {deepdiveReport.report_data ? '✓ Generated' : '⟳ Generating...'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: 'var(--muted)' }}>Unlocked</span>
-              <span className="text-xs font-medium" style={{ color: deepdiveReport.is_unlocked ? 'var(--green)' : 'var(--muted)' }}>
-                {deepdiveReport.is_unlocked ? '✓ Yes' : '✗ Locked'}
-              </span>
-            </div>
+            <StatusRow
+              label="Status"
+              value={deepdiveReport.report_data ? 'Generated' : 'Generating...'}
+              color={deepdiveReport.report_data ? 'var(--green)' : 'var(--gold)'}
+            />
+            <StatusRow
+              label="Unlocked"
+              value={deepdiveReport.is_unlocked ? 'Yes' : 'Locked'}
+              color={deepdiveReport.is_unlocked ? 'var(--green)' : 'var(--muted)'}
+            />
             {client.report_token && (
-              <a
-                href={`/report/${client.report_token}/deepdive`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full rounded-lg px-3 py-2 text-center text-xs font-semibold transition-colors"
-                style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
-              >
-                View Deep Dive Report
-              </a>
+              <LinkButton href={`/report/${client.report_token}/deepdive`} label="View Deep Dive Report" primary />
             )}
           </div>
         ) : (
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>No deep dive report generated yet.</p>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            No deep dive report generated yet.
+          </p>
         )}
-      </div>
+      </Card>
 
-      {/* Competitors */}
+      {showDeepDive && client.lead_id && (
+        <div className="lg:col-span-2">
+          <DeepDivePanel
+            leadId={client.lead_id}
+            reportToken={client.report_token}
+            deepdiveStatus={client.deepdive_status ?? null}
+            deepdiveViewedAt={client.deepdive_viewed_at ?? null}
+            deepReport={deepdiveReport}
+            onAfterMutation={refresh}
+          />
+        </div>
+      )}
+
       {client.competitors && client.competitors.length > 0 && (
-        <div className="rounded-xl p-4 lg:col-span-2" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-            Competitors
-          </h3>
+        <Card title="Competitors" className="lg:col-span-2">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {client.competitors.map((comp) => (
-              <div key={comp.id} className="rounded-lg p-3" style={{ background: 'var(--navy3)', border: '1px solid var(--border)' }}>
-                <div className="text-sm font-medium" style={{ color: 'var(--light)' }}>{comp.name}</div>
-                <a href={comp.url} target="_blank" rel="noopener" className="text-xs hover:underline" style={{ color: 'var(--gold)' }}>
-                  {comp.url}
+            {client.competitors.map((competitor) => (
+              <div key={competitor.id} className="rounded-lg p-3" style={{ background: 'var(--navy3)', border: '1px solid var(--border)' }}>
+                <div className="text-sm font-medium" style={{ color: 'var(--light)' }}>{competitor.name}</div>
+                <a href={competitor.url} target="_blank" rel="noopener" className="text-xs hover:underline" style={{ color: 'var(--gold)' }}>
+                  {competitor.url}
                 </a>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );
 }
 
-function EditableField({
-  clientId, field, label, initialValue, isLink,
+function Card({
+  title,
+  children,
+  className = '',
+  actionLabel,
+  actionColor,
 }: {
-  clientId: string; field: string; label: string; initialValue: string; isLink?: boolean;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+  actionLabel?: string;
+  actionColor?: string;
 }) {
+  return (
+    <div className={`rounded-xl p-4 ${className}`.trim()} style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+          {title}
+        </h3>
+        {actionLabel ? (
+          <span className="text-[10px] font-medium" style={{ color: actionColor ?? 'var(--muted)' }}>
+            {actionLabel}
+          </span>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function StatusRow({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs" style={{ color: 'var(--muted)' }}>{label}</span>
+      <span className="text-xs font-medium" style={{ color }}>{value}</span>
+    </div>
+  );
+}
+
+function LinkButton({ href, label, primary = false }: { href: string; label: string; primary?: boolean }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-full rounded-lg px-3 py-2 text-center text-xs font-semibold transition-colors"
+      style={{
+        background: primary ? 'var(--gold-dim)' : 'rgba(9,20,40,0.6)',
+        color: primary ? 'var(--gold)' : 'var(--silver)',
+        border: primary ? '1px solid var(--border-gold)' : '1px solid var(--border)',
+      }}
+    >
+      {label}
+    </a>
+  );
+}
+
+function EditableField({
+  clientId,
+  field,
+  label,
+  initialValue,
+  isLink,
+}: {
+  clientId: string;
+  field: string;
+  label: string;
+  initialValue: string;
+  isLink?: boolean;
+}) {
+  const router = useRouter();
   const [value, setValue] = useState(initialValue);
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const save = useCallback(async (newVal: string) => {
-    if (newVal === initialValue) { setEditing(false); return; }
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  const save = useCallback(async (nextValue: string) => {
+    if (nextValue === initialValue) {
+      setEditing(false);
+      return;
+    }
+
     setStatus('saving');
-    await fetch('/api/dashboard/update-client', {
+    setError('');
+
+    const res = await fetch('/api/dashboard/update-client', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientId, fields: { [field]: newVal } }),
+      body: JSON.stringify({ clientId, fields: { [field]: nextValue } }),
     });
+
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({ error: 'Failed to save field' })) as { error?: string };
+      setError(json.error ?? 'Failed to save field');
+      setStatus('idle');
+      return;
+    }
+
     setStatus('saved');
     setEditing(false);
+    router.refresh();
     setTimeout(() => setStatus('idle'), 2000);
-  }, [clientId, field, initialValue]);
+  }, [clientId, field, initialValue, router]);
 
   useEffect(() => {
     if (editing && inputRef.current) inputRef.current.focus();
@@ -207,42 +303,68 @@ function EditableField({
 
   if (editing) {
     return (
-      <div className="flex items-start justify-between gap-4">
-        <dt className="shrink-0 text-xs pt-1.5" style={{ color: 'var(--muted)' }}>{label}</dt>
-        <dd className="flex-1 max-w-[200px]">
-          <input
-            ref={inputRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onBlur={() => save(value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') save(value); if (e.key === 'Escape') { setValue(initialValue); setEditing(false); } }}
-            className="w-full rounded px-2 py-1 text-right text-xs outline-none"
-            style={{ background: 'var(--navy3)', border: '1px solid var(--border-gold)', color: 'var(--light)' }}
-          />
-        </dd>
+      <div className="space-y-1">
+        <div className="flex items-start justify-between gap-4">
+          <dt className="shrink-0 pt-1.5 text-xs" style={{ color: 'var(--muted)' }}>{label}</dt>
+          <dd className="max-w-[200px] flex-1">
+            <input
+              ref={inputRef}
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              onBlur={() => save(value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') save(value);
+                if (event.key === 'Escape') {
+                  setValue(initialValue);
+                  setEditing(false);
+                }
+              }}
+              className="w-full rounded px-2 py-1 text-right text-xs outline-none"
+              style={{ background: 'var(--navy3)', border: '1px solid var(--border-gold)', color: 'var(--light)' }}
+            />
+          </dd>
+        </div>
+        {error && (
+          <div className="text-right text-[11px]" style={{ color: '#f87171' }}>
+            {error}
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div
-      className="flex items-start justify-between gap-4 group cursor-pointer rounded px-1 -mx-1 transition-colors hover:bg-white/5"
+      className="group -mx-1 flex cursor-pointer items-start justify-between gap-4 rounded px-1 transition-colors hover:bg-white/5"
       onClick={() => setEditing(true)}
     >
       <dt className="shrink-0 text-xs" style={{ color: 'var(--muted)' }}>
         {label}
-        {status === 'saved' && <span className="ml-1 text-[10px]" style={{ color: 'var(--green)' }}>✓</span>}
+        {status === 'saved' && (
+          <span className="ml-1 text-[10px]" style={{ color: 'var(--green)' }}>
+            ✓
+          </span>
+        )}
       </dt>
       <dd className="text-right text-xs font-medium" style={{ color: 'var(--light)', wordBreak: 'break-all' }}>
-        {isLink && value && value !== '—' ? (
-          <span onClick={(e) => e.stopPropagation()}>
-            <a href={value.startsWith('http') ? value : `mailto:${value}`} target="_blank" rel="noopener"
-              className="hover:underline" style={{ color: 'var(--gold)' }}>
-              {value || '—'}
+        {isLink && value && value !== '-' ? (
+          <span onClick={(event) => event.stopPropagation()}>
+            <a
+              href={value.startsWith('http') ? value : `mailto:${value}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+              style={{ color: 'var(--gold)' }}
+            >
+              {value || '-'}
             </a>
           </span>
-        ) : (value || '—')}
-        <span className="ml-2 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity" style={{ color: 'var(--muted)' }}>✎</span>
+        ) : (
+          value || '-'
+        )}
+        <span className="ml-2 text-[10px] opacity-0 transition-opacity group-hover:opacity-60" style={{ color: 'var(--muted)' }}>
+          ✎
+        </span>
       </dd>
     </div>
   );
@@ -253,12 +375,19 @@ function InfoRow({ label, value, isLink }: { label: string; value: string; isLin
     <div className="flex items-start justify-between gap-4">
       <dt className="shrink-0 text-xs" style={{ color: 'var(--muted)' }}>{label}</dt>
       <dd className="text-right text-xs font-medium" style={{ color: 'var(--light)', wordBreak: 'break-all' }}>
-        {isLink && value !== '—' ? (
-          <a href={value.startsWith('http') ? value : `mailto:${value}`} target="_blank" rel="noopener"
-            className="hover:underline" style={{ color: 'var(--gold)' }}>
+        {isLink && value !== '-' ? (
+          <a
+            href={value.startsWith('http') ? value : `mailto:${value}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline"
+            style={{ color: 'var(--gold)' }}
+          >
             {value}
           </a>
-        ) : value}
+        ) : (
+          value
+        )}
       </dd>
     </div>
   );

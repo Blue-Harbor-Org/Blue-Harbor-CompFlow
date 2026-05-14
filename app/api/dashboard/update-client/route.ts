@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { createAdminClient } from '@/lib/supabase';
 import { logActivity } from '@/lib/dashboard';
+import { getBhClientLeadId } from '@/lib/bh-client-context';
 
 const ALLOWED_FIELDS = new Set([
   'company_name',
@@ -43,7 +44,10 @@ export async function PATCH(request: Request) {
   if (updates.contact_phone) leadsSync.phone = updates.contact_phone;
 
   if (Object.keys(leadsSync).length > 0) {
-    await admin.from('leads').update(leadsSync).eq('id', clientId);
+    const leadId = await getBhClientLeadId(admin, clientId);
+    if (leadId) {
+      await admin.from('leads').update(leadsSync).eq('id', leadId);
+    }
   }
 
   const changed = Object.keys(updates).join(', ');

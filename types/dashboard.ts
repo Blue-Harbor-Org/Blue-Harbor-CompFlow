@@ -38,6 +38,7 @@ export interface ActivityLogEntry {
 
 export interface Client {
   id: string;
+  lead_id?: string | null;
   created_at: string;
   report_id?: string | null;
   contact_name: string;
@@ -52,6 +53,8 @@ export interface Client {
   status_changed_at: string;
   notes: string | null;
   report_token: string;
+  deepdive_status?: string | null;
+  deepdive_viewed_at?: string | null;
   competitor_url: string | null;
   competitor_name: string | null;
   competitors: { id: string; name: string; url: string; source: string; autoFound: boolean }[] | null;
