@@ -95,7 +95,7 @@ export default function IntakeForm({ clientId, intakeToken }: IntakeFormProps) {
       }
     }
     load();
-  }, [clientId]);
+  }, [clientId, intakeToken]);
 
   const saveDraft = useCallback(
     async (formData: IntakeFormData, currentStep: number, completed = false) => {
@@ -123,7 +123,7 @@ export default function IntakeForm({ clientId, intakeToken }: IntakeFormProps) {
         setSaving(false);
       }
     },
-    [clientId]
+    [clientId, intakeToken]
   );
 
   function handleChange(updates: Partial<IntakeFormData>) {

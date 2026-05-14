@@ -39,6 +39,7 @@ export interface ActivityLogEntry {
 export interface Client {
   id: string;
   created_at: string;
+  report_id?: string | null;
   contact_name: string;
   business_name: string;
   email: string;

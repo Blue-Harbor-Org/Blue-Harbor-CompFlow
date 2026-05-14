@@ -1,9 +1,10 @@
 import { redirect, notFound } from 'next/navigation';
+import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { getBhClientContext } from '@/lib/bh-client-context';
 import AdminShell from '@/components/admin/AdminShell';
 import ProposalBuilder from '@/components/proposal/ProposalBuilder';
-import Link from 'next/link';
 import type { BattlecardRow } from '@/types/proposal';
 
 interface Props {
@@ -18,86 +19,97 @@ export default async function ProposalBuilderPage({ params }: Props) {
   if (!user) redirect('/auth/login');
 
   const admin = createAdminClient();
+  const { client, standardReport } = await getBhClientContext(admin, clientId);
+  if (!client) notFound();
 
-  // Client data comes from the leads table (used by the pipeline dashboard)
-  const { data: client, error: clientError } = await admin
-    .from('leads')
-    .select('*')
-    .eq('id', clientId)
-    .single();
+  const [{ data: existingProposal }, { data: intake }] = await Promise.all([
+    admin
+      .from('bh_proposals')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from('bh_intake_submissions')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (clientError || !client) notFound();
+  const reportData = standardReport?.report_data
+    ? (standardReport.report_data as unknown as Record<string, unknown>)
+    : null;
 
-  // Check for existing proposal in bh_proposals
-  const { data: existingProposal } = await admin
-    .from('bh_proposals')
-    .select('*')
-    .eq('client_id', clientId)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  // Pull comp report data if a standard report exists for this lead
-  let reportData: Record<string, unknown> | null = null;
-  const { data: report } = await admin
-    .from('reports')
-    .select('report_data')
-    .eq('lead_id', clientId)
-    .eq('report_type', 'standard')
-    .maybeSingle();
-  if (report?.report_data) reportData = report.report_data as Record<string, unknown>;
-
-  // Build battlecard from comp report comparison data
   let battlecardFromReport: BattlecardRow[] = [];
-  if (reportData && reportData.comparison) {
-    const comp = reportData.comparison;
-    if (Array.isArray(comp)) {
-      battlecardFromReport = comp.slice(0, 10).map((row: Record<string, unknown>, i: number) => ({
+  if (reportData && Array.isArray(reportData.comparison)) {
+    battlecardFromReport = reportData.comparison
+      .slice(0, 10)
+      .map((row: Record<string, unknown>, i: number) => ({
         id: `bc-${i}`,
         category: (row.category as string) || '',
         client: (row.client as string) || '',
         competitor: (row.competitor as string) || (row.topCompetitor as string) || '',
         included: true,
       }));
+  }
+
+  const summaryParts: string[] = [];
+
+  if (intake) {
+    const intakeHighlights: string[] = [];
+    if (intake.years_in_business) {
+      intakeHighlights.push(`${intake.years_in_business} years in business`);
+    }
+    if (intake.deals_closed) {
+      intakeHighlights.push(`${intake.deals_closed} closed deals`);
+    }
+    if (intake.total_volume) {
+      intakeHighlights.push(`$${Number(intake.total_volume).toLocaleString()} in volume`);
+    }
+    if (intakeHighlights.length > 0) {
+      summaryParts.push(`${client.company_name} reports ${intakeHighlights.join(', ')}.`);
+    }
+    if (intake.geo_focus) {
+      summaryParts.push(`Geographic focus: ${intake.geo_focus}.`);
     }
   }
 
-  // Auto-generate situation summary from report
-  let situationSummary = '';
   if (reportData) {
-    const parts: string[] = [];
     const overview = reportData.overview as Record<string, unknown> | undefined;
     if (overview?.clientSummary) {
-      parts.push(overview.clientSummary as string);
+      summaryParts.push(overview.clientSummary as string);
     }
+
     const topFindings = reportData.topFindings as { title: string }[] | undefined;
     if (topFindings?.length) {
       const gaps = topFindings
         .slice(0, 3)
-        .map(f => f.title)
+        .map((finding) => finding.title)
         .join(', ');
-      parts.push(`Key gaps identified: ${gaps}.`);
+      summaryParts.push(`Key gaps identified: ${gaps}.`);
     }
-    situationSummary = parts.join(' ');
   }
 
   return (
     <AdminShell
       userEmail={user.email}
       title="Proposal Builder"
-      subtitle={client.business_name}
+      subtitle={client.company_name}
       headerActions={
         <Link href={`/dashboard/clients/${clientId}`} className="btn-ghost min-h-[44px] px-4 py-2 text-sm">
-          ← Back
+          Back
         </Link>
       }
     >
       <ProposalBuilder
         clientId={clientId}
-        clientName={client.business_name}
+        clientName={client.company_name}
         existingProposal={existingProposal}
         battlecardFromReport={battlecardFromReport}
-        situationSummary={situationSummary}
+        situationSummary={summaryParts.join(' ')}
       />
     </AdminShell>
   );

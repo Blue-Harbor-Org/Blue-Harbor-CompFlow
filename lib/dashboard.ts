@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase';
 import type { Client, TeamMember, ActivityLogEntry } from '@/types/dashboard';
+import { getBhClientContext } from '@/lib/bh-client-context';
 
 function toBhTeamMember(row: Record<string, unknown>): TeamMember {
   return {
@@ -23,9 +24,10 @@ export async function getTeamMemberByUserId(userId: string): Promise<TeamMember 
 export async function getClients(): Promise<Client[]> {
   const admin = createAdminClient();
 
-  const [{ data: clients }, { data: members }, { data: leads }] = await Promise.all([
+  const [{ data: clients }, { data: members }, { data: reports }, { data: leads }] = await Promise.all([
     admin.from('bh_clients').select('*').order('created_at', { ascending: false }),
     admin.from('bh_team_members').select('*'),
+    admin.from('reports').select('id, lead_id, report_type'),
     admin.from('leads').select('*'),
   ]);
 
@@ -33,12 +35,20 @@ export async function getClients(): Promise<Client[]> {
     (members ?? []).map(m => [m.user_id, toBhTeamMember(m)])
   );
 
+  const leadIdByReportId = new Map(
+    (reports ?? [])
+      .filter(r => (r.report_type ?? 'standard') === 'standard')
+      .map(r => [r.id, r.lead_id])
+  );
+
   const leadById = new Map(
     (leads ?? []).map(l => [l.id, l])
   );
 
   return (clients ?? []).map(c => {
-    const lead = leadById.get(c.id);
+    const resolvedLeadId =
+      (c.report_id ? leadIdByReportId.get(c.report_id) : null) ?? c.id;
+    const lead = leadById.get(resolvedLeadId);
     return {
       ...c,
       business_name: c.company_name,
@@ -60,11 +70,7 @@ export async function getClients(): Promise<Client[]> {
 
 export async function getClient(clientId: string): Promise<Client | null> {
   const admin = createAdminClient();
-
-  const [{ data: client }, { data: lead }] = await Promise.all([
-    admin.from('bh_clients').select('*').eq('id', clientId).maybeSingle(),
-    admin.from('leads').select('*').eq('id', clientId).maybeSingle(),
-  ]);
+  const { client, lead } = await getBhClientContext(admin, clientId);
 
   if (!client) return null;
 

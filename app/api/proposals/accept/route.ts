@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAnonClient } from '@/lib/supabase';
+import { createAdminClient, createAnonClient } from '@/lib/supabase';
+import { getBhClientLeadId } from '@/lib/bh-client-context';
 
 export async function POST(request: NextRequest) {
   const { slug } = await request.json();
@@ -9,6 +10,7 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAnonClient();
+  const admin = createAdminClient();
 
   const { data: proposal, error } = await supabase
     .from('bh_proposals')
@@ -26,10 +28,18 @@ export async function POST(request: NextRequest) {
   }
 
   if (proposal?.client_id) {
-    await supabase
-      .from('leads')
-      .update({ pipeline_status: 'signed', status_changed_at: new Date().toISOString() })
+    await admin
+      .from('bh_clients')
+      .update({ status: 'signed' })
       .eq('id', proposal.client_id);
+
+    const leadId = await getBhClientLeadId(admin, proposal.client_id);
+    if (leadId) {
+      await admin
+        .from('leads')
+        .update({ status: 'closed_won' })
+        .eq('id', leadId);
+    }
   }
 
   return NextResponse.json({ success: true });

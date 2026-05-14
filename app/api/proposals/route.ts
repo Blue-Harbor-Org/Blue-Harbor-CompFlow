@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
+import { getBhClientLeadId } from '@/lib/bh-client-context';
 import { slugify } from '@/lib/slugify';
 import type { ProposalData } from '@/types/proposal';
 
@@ -22,19 +23,23 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   const { data: client } = await admin
-    .from('leads')
-    .select('business_name')
+    .from('bh_clients')
+    .select('id, company_name')
     .eq('id', clientId)
-    .single();
+    .maybeSingle();
+
+  if (!client) {
+    return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+  }
 
   const slug = slugify(
-    `${client?.business_name || 'proposal'}-${Date.now().toString(36)}`
+    `${client.company_name || 'proposal'}-${Date.now().toString(36)}`
   );
 
   const { data: proposal, error } = await admin
     .from('bh_proposals')
     .insert({
-      client_id: clientId,
+      client_id: client.id,
       created_by: user.id,
       title: proposalData.title,
       tagline: proposalData.tagline,
@@ -90,12 +95,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Update client status in the leads table (pipeline dashboard)
+    // Update client pipeline status in bh_clients and keep the linked lead in sync.
     if (proposal?.client_id) {
       await admin
-        .from('leads')
-        .update({ pipeline_status: 'proposal_sent', status_changed_at: new Date().toISOString() })
+        .from('bh_clients')
+        .update({ status: 'proposal_sent' })
         .eq('id', proposal.client_id);
+
+      const leadId = await getBhClientLeadId(admin, proposal.client_id);
+      if (leadId) {
+        await admin
+          .from('leads')
+          .update({ status: 'proposal_sent' })
+          .eq('id', leadId);
+      }
     }
 
     return NextResponse.json({ proposal });

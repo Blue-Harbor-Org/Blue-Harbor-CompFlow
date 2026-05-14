@@ -16,6 +16,22 @@ async function validateIntakeToken(
   return !!data;
 }
 
+function parseGeoFocus(value: string | null) {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function parseTestimonials(value: string | null) {
+  if (!value) return [];
+  return value
+    .split('\n---\n')
+    .map((text, index) => ({ id: `testimonial-${index + 1}`, text: text.trim() }))
+    .filter((entry) => entry.text.length > 0);
+}
+
 export async function GET(req: NextRequest) {
   const clientId = req.nextUrl.searchParams.get('clientId');
   if (!clientId) {
@@ -47,7 +63,38 @@ export async function GET(req: NextRequest) {
     .limit(1)
     .maybeSingle();
 
-  return NextResponse.json({ client, submission });
+  const normalizedClient = {
+    id: client.id,
+    company_name: client.company_name,
+    email: client.contact_email,
+    phone: client.contact_phone,
+    address: null,
+    organization_id: '',
+  };
+
+  const normalizedSubmission = submission
+    ? {
+        ...submission,
+        current_step: 1,
+        company_name: client.company_name,
+        total_loan_volume: submission.total_volume,
+        total_deals_closed: submission.deals_closed,
+        deal_history: submission.deal_examples ?? [],
+        physical_address: submission.address,
+        direct_lending_min: submission.loan_min,
+        direct_lending_max: submission.loan_max,
+        brokered_loan_min: null,
+        brokered_loan_max: null,
+        geographic_focus: parseGeoFocus(submission.geo_focus),
+        geographic_focus_other: '',
+        property_types_served: [],
+        testimonials: parseTestimonials(submission.testimonials),
+        awards_press: submission.existing_copy ?? '',
+        marketing_file_urls: [],
+      }
+    : null;
+
+  return NextResponse.json({ client: normalizedClient, submission: normalizedSubmission });
 }
 
 export async function POST(req: NextRequest) {
@@ -96,7 +143,7 @@ export async function POST(req: NextRequest) {
     john_cell: formData.john_cell || null,
     craig_cell: formData.craig_cell || null,
     loan_min: formData.direct_lending_min || null,
-    loan_max: formData.brokered_loan_min || null,
+    loan_max: formData.direct_lending_max || null,
     geo_focus: Array.isArray(formData.geographic_focus)
       ? [
           ...formData.geographic_focus,

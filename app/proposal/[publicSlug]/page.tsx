@@ -5,13 +5,9 @@ import type { Proposal } from '@/types/proposal';
 
 export const dynamic = 'force-dynamic';
 
-export type PageProps = { params: { publicSlug: string } };
-
-interface Props {
-  params: Promise<{ publicSlug: string }>;
-}
-
-export default async function PublicProposalPage({ params }: Props) {
+export default async function PublicProposalPage(
+  { params }: PageProps<'/proposal/[publicSlug]'>
+) {
   const { publicSlug } = await params;
 
   const supabase = createAnonClient();
