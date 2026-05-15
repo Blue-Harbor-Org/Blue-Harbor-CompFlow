@@ -23,6 +23,8 @@ interface Props {
   existingProposal: Proposal | null;
   battlecardFromReport: BattlecardRow[];
   situationSummary: string;
+  /** Preferred mockup for PDF (e.g. latest home page). */
+  pdfMockupId?: string | null;
 }
 
 function genId() {
@@ -35,7 +37,16 @@ export default function ProposalBuilder({
   existingProposal,
   battlecardFromReport,
   situationSummary: defaultSummary,
+  pdfMockupId,
 }: Props) {
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [proposalNumber, setProposalNumber] = useState<string | null>(null);
+  const [investmentAmount, setInvestmentAmount] = useState<number | null>(null);
+  const [pdfValidUntil, setPdfValidUntil] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [proposalId, setProposalId] = useState(existingProposal?.id || '');
@@ -88,6 +99,78 @@ export default function ProposalBuilder({
     roadmap,
     closing,
   }), [title, tagline, prepDate, situationSummary, battlecard, deliverables, pricing, roadmap, closing]);
+
+  async function handleGeneratePdf() {
+    setPdfGenerating(true);
+    setPdfError(null);
+    try {
+      const res = await fetch('/api/dashboard/proposal/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, mockupId: pdfMockupId ?? undefined }),
+      });
+      const data = (await res.json()) as {
+        pdfUrl?: string;
+        proposalNumber?: string;
+        investmentAmount?: number;
+        validUntil?: string;
+        error?: string;
+        detail?: string;
+      };
+      if (!res.ok) {
+        setPdfError(data.error || data.detail || 'Generation failed');
+        return;
+      }
+      if (data.pdfUrl) {
+        setPdfUrl(data.pdfUrl);
+        setProposalNumber(data.proposalNumber ?? null);
+        setInvestmentAmount(data.investmentAmount ?? null);
+        setPdfValidUntil(data.validUntil ?? null);
+      }
+    } catch (e) {
+      setPdfError(e instanceof Error ? e.message : 'Request failed');
+    } finally {
+      setPdfGenerating(false);
+    }
+  }
+
+  async function handleSendProposal() {
+    if (!pdfUrl || !proposalNumber || investmentAmount === null) return;
+    setSending(true);
+    setPdfError(null);
+    try {
+      const res = await fetch('/api/dashboard/proposal/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          proposalNumber,
+          pdfUrl,
+          investmentAmount,
+          validUntil: pdfValidUntil ?? undefined,
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok) {
+        setPdfError(data.error || 'Send failed');
+        return;
+      }
+      setSent(true);
+    } catch (e) {
+      setPdfError(e instanceof Error ? e.message : 'Request failed');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function handleRegeneratePdf() {
+    setPdfUrl(null);
+    setProposalNumber(null);
+    setInvestmentAmount(null);
+    setPdfValidUntil(null);
+    setSent(false);
+    setPdfError(null);
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -491,6 +574,77 @@ export default function ProposalBuilder({
           </div>
         </div>
       </Section>
+
+      <div className="border-t border-[var(--border)] pt-6 mt-6 space-y-4 max-w-5xl">
+        <h3 className="font-semibold text-sm" style={{ color: 'var(--light)' }}>
+          PDF proposal
+        </h3>
+        {pdfError && (
+          <p className="text-sm text-red-400" role="alert">
+            {pdfError}
+          </p>
+        )}
+        {!pdfUrl ? (
+          <button
+            type="button"
+            onClick={handleGeneratePdf}
+            disabled={pdfGenerating}
+            className="w-full py-3 rounded-xl min-h-[44px] text-sm font-medium disabled:opacity-50"
+            style={{ background: 'var(--gray-900, #111)', color: '#fff' }}
+          >
+            {pdfGenerating ? 'Generating proposal…' : 'Generate PDF proposal'}
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div
+              className="flex items-center gap-3 p-3 rounded-xl border"
+              style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.35)' }}
+            >
+              <span className="text-green-400" aria-hidden>
+                ✓
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium" style={{ color: 'var(--light)' }}>
+                  Proposal {proposalNumber} ready
+                </p>
+                {investmentAmount != null && (
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    Investment: ${investmentAmount.toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs shrink-0 underline"
+                style={{ color: 'var(--gold)' }}
+              >
+                Preview
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSendProposal}
+              disabled={sending || sent}
+              className="w-full py-2.5 rounded-xl border min-h-[44px] text-sm font-medium disabled:opacity-50"
+              style={{ borderColor: 'var(--border)', color: 'var(--light)' }}
+            >
+              {sent ? 'Sent to client' : sending ? 'Sending…' : 'Email to client'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRegeneratePdf}
+              className="w-full py-2 text-xs"
+              style={{ color: 'var(--muted)' }}
+            >
+              Regenerate
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

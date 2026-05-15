@@ -1,6 +1,6 @@
 # Blue Harbor Audit Summary
 
-Updated: 2026-05-14
+Updated: 2026-05-15
 
 ## Current Status
 
@@ -8,6 +8,22 @@ Updated: 2026-05-14
 - `npx tsc --noEmit` passes.
 - `npm run build` now passes.
 - `npx eslint app lib components types --ext .ts,.tsx` passes.
+
+## Session 4 — Proposal PDF + Email Delivery
+Date: 2026-05-15
+Completed:
+- `lib/proposal-template.ts` — branded HTML template (cover, audit, executive summary, design block, scope, pricing, timeline, next steps, signature) with HTML escaping for dynamic content
+- `lib/proposal-generator.ts` — Claude generates executive summary, scope, pricing, timeline, next steps
+- `lib/proposal-pdf.ts` — Puppeteer + `@sparticuz/chromium` PDF path; jsPDF text fallback; HTML buffer last resort
+- `lib/proposal-report-context.ts` — extracts findings and competitor comparison notes from `ReportData`
+- `/api/dashboard/proposal/generate-pdf` — team auth, client + report + mockup context, storage upload to `documents` bucket, optional `bh_proposals` row update (`sql/bh-session4-proposal-pdf.sql`)
+- `/api/dashboard/proposal/send` — Resend proposal email; updates latest proposal status
+- `lib/resend.ts` — `getResendClient()` with placeholder-key guard; all sends return `{ id, error }`; `sendProposalEmail` + escaped HTML body fields
+- Proposal builder UI — generate PDF, preview link, email client, regenerate (`components/proposal/ProposalBuilder.tsx`, `pdfMockupId` from proposal page)
+- `middleware.ts` migrated to `proxy.ts` with `export async function proxy` (Next.js 16 convention)
+- `next.config.ts` — `serverExternalPackages` for Puppeteer/Chromium
+Open findings remaining: #1 (intake RLS — medium, non-blocking)
+Next session: Public-facing proposal acceptance page polish + client portal
 
 ## Session 2 — UI/UX + Mockup Maker
 Date: 2026-05-13
@@ -54,15 +70,14 @@ Next session: Proposal PDF generator from approved mockup + Resend email deliver
 | ID | Severity | Issue | Evidence | Impact |
 | --- | --- | --- | --- | --- |
 | 1 | medium | The public intake API still bypasses database RLS by using the service-role client directly and trusting an app-level `x-intake-token` header. | `app/api/intake/route.ts:4-16`, `app/api/intake/route.ts:41-64`, `app/api/intake/route.ts:108-190` | Security for public intake access still depends on route code and token secrecy, not on the anon role exercising the database access model directly. |
-| 3 | low | Local email delivery is still disabled because `RESEND_API_KEY` is blank. | `.env.local:5`, `lib/resend.ts:6-12` | Report-ready, unlock, deep-dive, and admin notification emails no-op locally until a real key is configured. |
-| 4 | low | The project still uses the deprecated `middleware.ts` file convention on Next.js 16. | `middleware.ts:4-37` | The current build passes, but future framework upgrades will require migrating this file to `proxy.ts`. |
+| 3 | low | Configure a real `RESEND_API_KEY` in `.env.local` when you want emails to send (placeholders and empty keys are ignored safely). | `.env.example`, `lib/resend.ts` (`getResendClient`) | Until set, Resend calls return `{ error: 'not_configured' }` and proposal/report emails are skipped without throwing. |
+| 4 | resolved | Migrated deprecated `middleware.ts` to `proxy.ts` per Next.js 16. | `proxy.ts:4-31` | Build shows “ƒ Proxy (Middleware)” and the deprecation warning for `middleware.ts` is gone. |
 
 ## Verification Notes
 
 - `npx tsc --noEmit` passed.
 - `npm run build` passed on Next.js 16.2.5.
-- `npm run build` still prints the framework warning about the deprecated `middleware` file convention.
-- `npx eslint app lib components types --ext .ts,.tsx` passed after the Session 2 cleanup.
+- `npx eslint app lib components types --ext .ts,.tsx` passed after Session 4.
 
 ## Operational Note
 

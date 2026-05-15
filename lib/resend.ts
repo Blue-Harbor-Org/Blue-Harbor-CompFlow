@@ -3,16 +3,33 @@ import type { ReportData } from '@/types/report';
 import type { Lead } from '@/types/lead';
 import { getFindingTitle } from '@/lib/reportUtils';
 
-function getResend(): Resend | null {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not set — email disabled');
-    return null;
-  }
-  return new Resend(process.env.RESEND_API_KEY);
+export type EmailSendResult = { id: string | null; error: string | null };
+
+function isPlaceholderResendKey(key: string): boolean {
+  const k = key.trim();
+  if (!k) return true;
+  if (k.startsWith('re_REPLACE')) return true;
+  if (k === 're_your_real_key_here') return true;
+  if (k.includes('your_resend') || k.includes('your_real_key')) return true;
+  return false;
 }
 
-const FROM = process.env.RESEND_FROM_EMAIL || 'reports@blueharbor.com';
+export function getResendClient(): Resend | null {
+  const key = process.env.RESEND_API_KEY?.trim() ?? '';
+  if (isPlaceholderResendKey(key)) {
+    console.warn('[Resend] RESEND_API_KEY not configured — emails will not send');
+    return null;
+  }
+  return new Resend(key);
+}
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://blueharbor.com';
+
+function fromHeader(): string {
+  const email = process.env.RESEND_FROM_EMAIL || 'reports@blueharbor.com';
+  const name = process.env.RESEND_FROM_NAME || 'Blue Harbor';
+  return `${name} <${email}>`;
+}
 
 function emailBase(content: string) {
   return `<!DOCTYPE html>
@@ -52,6 +69,24 @@ function emailBase(content: string) {
 </html>`;
 }
 
+async function sendEmail(
+  payload: Parameters<Resend['emails']['send']>[0]
+): Promise<EmailSendResult> {
+  const resend = getResendClient();
+  if (!resend) return { id: null, error: 'not_configured' };
+  try {
+    const result = await resend.emails.send(payload);
+    if (result.error) {
+      console.error('[Resend] API error:', result.error);
+      return { id: null, error: String(result.error.message ?? result.error) };
+    }
+    return { id: result.data?.id ?? null, error: null };
+  } catch (err) {
+    console.error('[Resend] send failed:', err);
+    return { id: null, error: String(err) };
+  }
+}
+
 export async function sendReportReadyEmail(
   to: string,
   firstName: string,
@@ -80,11 +115,8 @@ export async function sendReportReadyEmail(
     <p class="body-text">— Blue Harbor</p>
   `;
 
-  const resend = getResend();
-  if (!resend) return { error: 'email_disabled' };
-
-  return resend.emails.send({
-    from: FROM,
+  return sendEmail({
+    from: fromHeader(),
     to,
     subject: `${businessName} — Your competitive analysis is ready`,
     html: emailBase(content),
@@ -117,11 +149,8 @@ export async function sendUnlockEmail(
     <p class="body-text">Talk soon,<br/><strong style="color:#edf1f7">Blue Harbor</strong></p>
   `;
 
-  const resend = getResend();
-  if (!resend) return { error: 'email_disabled' };
-
-  return resend.emails.send({
-    from: FROM,
+  return sendEmail({
+    from: fromHeader(),
     to,
     subject: `Your full Blue Harbor report is unlocked — ${businessName}`,
     html: emailBase(content),
@@ -148,11 +177,8 @@ export async function sendDeepDiveUnlocked(lead: Lead, deepDiveUrl: string) {
     <p class="body-text">— Blue Harbor</p>
   `;
 
-  const resend = getResend();
-  if (!resend) return { error: 'email_disabled' };
-
-  return resend.emails.send({
-    from: FROM,
+  return sendEmail({
+    from: fromHeader(),
     to: lead.email,
     subject: `Your full deep-dive competitive report is ready — ${lead.business_name}`,
     html: emailBase(content),
@@ -187,13 +213,132 @@ export async function sendAdminNotificationEmail(
     <a href="${dashboardUrl}" class="btn">View in Dashboard →</a>
   `;
 
-  const resend = getResend();
-  if (!resend) return { error: 'email_disabled' };
-
-  return resend.emails.send({
-    from: FROM,
+  return sendEmail({
+    from: fromHeader(),
     to: adminEmail,
     subject: `🔥 ${businessName} just booked a call`,
     html: emailBase(content),
   });
+}
+
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export async function sendProposalEmail({
+  toEmail,
+  toName,
+  businessName,
+  proposalNumber,
+  pdfUrl,
+  preparedBy,
+  validUntil,
+  investmentAmount,
+}: {
+  toEmail: string;
+  toName: string;
+  businessName: string;
+  proposalNumber: string;
+  pdfUrl: string;
+  preparedBy: string;
+  validUntil: string;
+  investmentAmount: number;
+}): Promise<EmailSendResult> {
+  const resend = getResendClient();
+  if (!resend) return { id: null, error: 'not_configured' };
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'proposals@blueharbor.com';
+  const fromName = process.env.RESEND_FROM_NAME ?? 'Blue Harbor';
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  });
+  const validDate = new Date(validUntil).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  const safe = {
+    toName: escHtml(toName),
+    businessName: escHtml(businessName),
+    proposalNumber: escHtml(proposalNumber),
+    preparedBy: escHtml(preparedBy),
+  };
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F8F9FA;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+
+    <div style="background:#0f1f38;border-radius:12px 12px 0 0;padding:32px 40px;text-align:center;">
+      <div style="font-family:Georgia,serif;font-size:22px;color:#C9A84C;letter-spacing:0.05em;font-weight:600;">Blue Harbor</div>
+    </div>
+
+    <div style="background:#ffffff;padding:40px;border:1px solid #E9ECEF;border-top:none;">
+      <p style="font-size:16px;color:#212529;margin:0 0 8px;">Hi ${safe.toName},</p>
+      <p style="font-size:15px;color:#495057;line-height:1.6;margin:0 0 28px;">
+        Your website redesign proposal for <strong>${safe.businessName}</strong> is ready.
+        We've put together a complete plan based on your competitive audit and approved design direction.
+      </p>
+
+      <div style="background:#F8F9FA;border:1px solid #E9ECEF;border-radius:8px;padding:24px;margin-bottom:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-size:12px;color:#868E96;text-transform:uppercase;letter-spacing:0.08em;">Proposal</span>
+          <span style="font-size:12px;color:#868E96;">${safe.proposalNumber}</span>
+        </div>
+        <div style="font-size:24px;font-family:Georgia,serif;color:#0f1f38;font-weight:700;margin-bottom:4px;">${formatter.format(investmentAmount)}</div>
+        <div style="font-size:13px;color:#868E96;">Investment · Valid until ${validDate}</div>
+      </div>
+
+      <div style="text-align:center;margin-bottom:28px;">
+        <a href="${pdfUrl}" style="display:inline-block;background:#0f1f38;color:#C9A84C;font-size:14px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;letter-spacing:0.05em;">
+          View Your Proposal →
+        </a>
+      </div>
+
+      <p style="font-size:13px;color:#868E96;line-height:1.6;margin:0 0 24px;">
+        Review the proposal at your convenience. When you're ready to move forward,
+        simply reply to this email or click the link above to get started.
+      </p>
+
+      <p style="font-size:14px;color:#212529;margin:0;">
+        ${safe.preparedBy}<br>
+        <span style="color:#868E96;font-size:13px;">Blue Harbor</span>
+      </p>
+    </div>
+
+    <div style="padding:20px 40px;text-align:center;">
+      <p style="font-size:11px;color:#ADB5BD;margin:0;">
+        This proposal is confidential and intended only for ${safe.toName} at ${safe.businessName}.
+        It expires on ${validDate}.
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    const result = await resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
+      to: toEmail,
+      subject: `Your Website Proposal — ${businessName} (${proposalNumber})`,
+      html,
+    });
+    if (result.error) {
+      console.error('[Resend] sendProposalEmail API error:', result.error);
+      return { id: null, error: String(result.error.message ?? result.error) };
+    }
+    return { id: result.data?.id ?? null, error: null };
+  } catch (err) {
+    console.error('[Resend] sendProposalEmail failed:', err);
+    return { id: null, error: String(err) };
+  }
 }

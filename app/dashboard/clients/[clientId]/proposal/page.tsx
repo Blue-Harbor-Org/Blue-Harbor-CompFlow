@@ -23,7 +23,7 @@ export default async function ProposalBuilderPage({ params }: Props) {
   const { client, standardReport } = await getBhClientContext(admin, clientId);
   if (!client) notFound();
 
-  const [existingProposalResult, intake] = await Promise.all([
+  const [existingProposalResult, intake, mockupsForPdfResult] = await Promise.all([
     admin
       .from('bh_proposals')
       .select('*')
@@ -32,8 +32,16 @@ export default async function ProposalBuilderPage({ params }: Props) {
       .limit(1)
       .maybeSingle(),
     getLatestClientIntake(admin, clientId, standardReport?.lead_id ?? null),
+    admin
+      .from('bh_site_mockups')
+      .select('id, page_slug, updated_at')
+      .eq('client_id', clientId)
+      .order('updated_at', { ascending: false }),
   ]);
   const existingProposal = existingProposalResult.data;
+  const mockupsForPdf = mockupsForPdfResult.data ?? [];
+  const pdfMockupId =
+    mockupsForPdf.find((m) => m.page_slug === 'home')?.id ?? mockupsForPdf[0]?.id ?? null;
 
   const reportData = standardReport?.report_data
     ? (standardReport.report_data as unknown as Record<string, unknown>)
@@ -106,6 +114,7 @@ export default async function ProposalBuilderPage({ params }: Props) {
         existingProposal={existingProposal}
         battlecardFromReport={battlecardFromReport}
         situationSummary={summaryParts.join(' ')}
+        pdfMockupId={pdfMockupId}
       />
     </AdminShell>
   );
