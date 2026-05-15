@@ -41,8 +41,11 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
 
   const intakeToken = req.headers.get('x-intake-token');
+  if (!intakeToken) {
+    return NextResponse.json({ error: 'Missing intake token' }, { status: 401 });
+  }
   if (!(await validateIntakeToken(supabase, clientId, intakeToken))) {
-    return NextResponse.json({ error: 'Invalid or missing intake token' }, { status: 403 });
+    return NextResponse.json({ error: 'Invalid or expired intake link' }, { status: 403 });
   }
 
   const { data: client, error: clientErr } = await supabase
@@ -108,8 +111,11 @@ export async function POST(req: NextRequest) {
   const supabase = createAdminClient();
 
   const intakeToken = req.headers.get('x-intake-token');
+  if (!intakeToken) {
+    return NextResponse.json({ error: 'Missing intake token' }, { status: 401 });
+  }
   if (!(await validateIntakeToken(supabase, clientId, intakeToken))) {
-    return NextResponse.json({ error: 'Invalid or missing intake token' }, { status: 403 });
+    return NextResponse.json({ error: 'Invalid or expired intake link' }, { status: 403 });
   }
 
   const { data: client } = await supabase

@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import type { ReportData } from '@/types/report';
 import type { Lead } from '@/types/lead';
 import { getFindingTitle } from '@/lib/reportUtils';
+import { getPublicSiteUrl } from '@/lib/siteUrl';
 
 export type EmailSendResult = { id: string | null; error: string | null };
 
@@ -339,6 +340,154 @@ export async function sendProposalEmail({
     return { id: result.data?.id ?? null, error: null };
   } catch (err) {
     console.error('[Resend] sendProposalEmail failed:', err);
+    return { id: null, error: String(err) };
+  }
+}
+
+export async function sendProposalAcceptedNotification({
+  toEmail,
+  toName,
+  businessName,
+  contactName,
+  proposalNumber,
+  investmentAmount,
+  portalUrl,
+}: {
+  toEmail: string;
+  toName: string;
+  businessName: string;
+  contactName: string;
+  proposalNumber: string;
+  investmentAmount: number;
+  portalUrl?: string | null;
+}): Promise<EmailSendResult> {
+  const resend = getResendClient();
+  if (!resend) return { id: null, error: 'not_configured' };
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  });
+
+  const safe = {
+    toName: escHtml(toName),
+    businessName: escHtml(businessName),
+    contactName: escHtml(contactName),
+    proposalNumber: escHtml(proposalNumber),
+  };
+
+  const dash = `${getPublicSiteUrl()}/dashboard`;
+  const portalHref = portalUrl && portalUrl.length > 0 ? encodeURI(portalUrl) : '';
+  const portalBlock =
+    portalHref.length > 0
+      ? `<p style="font-size:14px;color:#495057;line-height:1.6;">
+    Client status portal: <a href="${portalHref}" style="color:#0f1f38;font-weight:600;">Open portal →</a>
+  </p>`
+      : '';
+
+  const html = `
+<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:32px 20px;">
+  <div style="background:#0f1f38;border-radius:8px;padding:20px 24px;margin-bottom:24px;">
+    <div style="font-size:18px;color:#C9A84C;font-weight:600;">Proposal accepted</div>
+  </div>
+  <p style="font-size:15px;color:#212529;">Hi ${safe.toName},</p>
+  <p style="font-size:15px;color:#495057;line-height:1.6;">
+    <strong>${safe.contactName}</strong> at <strong>${safe.businessName}</strong> has accepted proposal
+    <strong>${safe.proposalNumber}</strong> for <strong>${formatter.format(investmentAmount)}</strong>.
+  </p>
+  ${portalBlock}
+  <p style="font-size:14px;color:#495057;">
+    Log in to the dashboard to send the deposit invoice and kick off the project.
+  </p>
+  <a href="${dash}"
+     style="display:inline-block;margin-top:16px;background:#0f1f38;color:#C9A84C;padding:12px 24px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;">
+    View in Dashboard →
+  </a>
+</div>`;
+
+  try {
+    const result = await resend.emails.send({
+      from: fromHeader(),
+      to: toEmail,
+      subject: `Proposal accepted — ${businessName} (${proposalNumber})`,
+      html,
+    });
+    if (result.error) {
+      return { id: null, error: String(result.error.message ?? result.error) };
+    }
+    return { id: result.data?.id ?? null, error: null };
+  } catch (err) {
+    return { id: null, error: String(err) };
+  }
+}
+
+export async function sendProjectStartedEmail({
+  toEmail,
+  toName,
+  businessName,
+  portalUrl,
+  preparedBy,
+}: {
+  toEmail: string;
+  toName: string;
+  businessName: string;
+  portalUrl: string;
+  preparedBy: string;
+}): Promise<EmailSendResult> {
+  const resend = getResendClient();
+  if (!resend) return { id: null, error: 'not_configured' };
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL ?? 'proposals@blueharbor.com';
+  const fromName = process.env.RESEND_FROM_NAME ?? 'Blue Harbor';
+
+  const safe = {
+    toName: escHtml(toName),
+    businessName: escHtml(businessName),
+    preparedBy: escHtml(preparedBy),
+  };
+
+  const html = `
+<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:40px 20px;">
+  <div style="background:#0f1f38;border-radius:12px;padding:28px 32px;margin-bottom:32px;text-align:center;">
+    <div style="font-family:Georgia,serif;font-size:20px;color:#C9A84C;font-weight:600;">Blue Harbor</div>
+  </div>
+
+  <h2 style="font-family:Georgia,serif;font-size:24px;color:#0f1f38;margin:0 0 12px;">
+    Your project has officially started, ${safe.toName}.
+  </h2>
+  <p style="font-size:15px;color:#495057;line-height:1.6;margin:0 0 24px;">
+    We're building your new website for <strong>${safe.businessName}</strong> right now.
+    You can track our progress in real time using the link below.
+  </p>
+
+  <div style="background:#F8F9FA;border:1px solid #E9ECEF;border-radius:8px;padding:24px;margin-bottom:28px;text-align:center;">
+    <div style="font-size:12px;color:#868E96;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;">Your project dashboard</div>
+    <a href="${portalUrl}"
+       style="display:inline-block;background:#0f1f38;color:#C9A84C;font-size:14px;font-weight:600;padding:14px 28px;border-radius:8px;text-decoration:none;">
+      Track your project →
+    </a>
+    <div style="font-size:11px;color:#ADB5BD;margin-top:12px;">Bookmark this link — it's your project status page</div>
+  </div>
+
+  <p style="font-size:14px;color:#495057;line-height:1.6;">
+    ${safe.preparedBy} will be in touch within 1 business day.
+    In the meantime, if you have any questions just reply to this email.
+  </p>
+</div>`;
+
+  try {
+    const result = await resend.emails.send({
+      from: `${fromName} <${fromEmail}>`,
+      to: toEmail,
+      subject: `Your new website is being built — ${businessName}`,
+      html,
+    });
+    if (result.error) {
+      return { id: null, error: String(result.error.message ?? result.error) };
+    }
+    return { id: result.data?.id ?? null, error: null };
+  } catch (err) {
     return { id: null, error: String(err) };
   }
 }

@@ -14,6 +14,7 @@ import ClientIntakeTab from '@/components/admin/ClientIntakeTab';
 import ClientProposalTab from '@/components/admin/ClientProposalTab';
 import ClientActivityTab from '@/components/admin/ClientActivityTab';
 import ClientWebsiteTab from '@/components/admin/ClientWebsiteTab';
+import { getPublicSiteUrl } from '@/lib/siteUrl';
 
 type Tab = 'overview' | 'intake' | 'proposal' | 'website' | 'activity';
 
@@ -185,6 +186,8 @@ export default function ClientDetailView({
         </div>
       </div>
 
+      <ClientQuickActions client={client} />
+
       {/* Tabs */}
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg p-1" style={{ background: 'rgba(9,20,40,0.4)', border: '1px solid var(--border)' }}>
         {tabs.map(({ key, label }) => (
@@ -207,13 +210,71 @@ export default function ClientDetailView({
       {/* Tab content */}
       <div>
         {activeTab === 'overview' && (
-          <ClientOverviewTab client={client} currentMember={currentMember} standardReport={standardReport} deepdiveReport={deepdiveReport} />
+          <ClientOverviewTab
+            client={client}
+            currentMember={currentMember}
+            standardReport={standardReport}
+            deepdiveReport={deepdiveReport}
+            recentActivity={activityLog.slice(0, 5)}
+            mockupCount={mockups.length}
+            onOpenWebsiteTab={() => setActiveTab('website')}
+          />
         )}
         {activeTab === 'intake' && <ClientIntakeTab client={client} intake={intake} />}
         {activeTab === 'proposal' && <ClientProposalTab client={client} />}
         {activeTab === 'website' && <ClientWebsiteTab client={client} mockups={mockups} onMockupsChange={setMockups} />}
         {activeTab === 'activity' && <ClientActivityTab activityLog={activityLog} />}
       </div>
+    </div>
+  );
+}
+
+function ClientQuickActions({ client }: { client: Client }) {
+  const base = getPublicSiteUrl();
+  const portalUrl = client.portal_token ? `${base}/portal/${client.portal_token}` : null;
+
+  const btn =
+    'inline-flex min-h-[44px] min-w-[44px] flex-1 items-center justify-center gap-1 rounded-lg px-3 text-center text-xs font-semibold transition-opacity hover:opacity-90 sm:flex-none sm:px-4';
+
+  return (
+    <div
+      className="mb-6 flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:flex-wrap"
+      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+    >
+      <a
+        href={`/dashboard/clients/${client.id}?tab=website`}
+        className={btn}
+        style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+      >
+        📄 Generate mockup
+      </a>
+      <a
+        href={`/dashboard/clients/${client.id}/proposal`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={btn}
+        style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+      >
+        📑 Send proposal
+      </a>
+      <a
+        href={`/dashboard/clients/${client.id}/buildout`}
+        className={btn}
+        style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+      >
+        🚀 Build site
+      </a>
+      {portalUrl && (
+        <a
+          href={portalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={btn}
+          style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+        >
+          👁 View portal
+        </a>
+      )}
     </div>
   );
 }

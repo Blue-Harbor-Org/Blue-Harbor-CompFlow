@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { createAdminClient } from '@/lib/supabase';
+import { logActivity } from '@/lib/dashboard';
 
 const VERCEL_API = 'https://api.vercel.com';
 
@@ -84,6 +85,16 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', buildoutId);
+
+  if (buildout?.client_id && previewUrl) {
+    await logActivity(
+      buildout.client_id as string,
+      auth.user.id,
+      'general',
+      `Site deployed to preview: ${previewUrl}`,
+      { buildout_id: buildoutId }
+    );
+  }
 
   return NextResponse.json({
     previewUrl,

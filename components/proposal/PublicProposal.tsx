@@ -1,388 +1,441 @@
 'use client';
 
-import { useState } from 'react';
-import type {
-  Proposal,
-  BattlecardRow,
-  ProposalDeliverable,
-  PricingTier,
-  RoadmapPhase,
-  ProposalClosing,
-} from '@/types/proposal';
+import { useMemo, useState } from 'react';
+import type { Proposal, ProposalDeliverable, RoadmapPhase, PricingTier } from '@/types/proposal';
+
+const NAVY = '#0f1f38';
+const GOLD = '#C9A84C';
+const BG = '#FAFAF8';
+const GREEN = '#1D9E75';
+
+function parseStringArray(raw: unknown): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
+  return [];
+}
+
+function parseTimeline(
+  raw: unknown
+): Array<{ phase: string; duration: string; deliverable: string }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      const o = item as Record<string, unknown>;
+      return {
+        phase: String(o.phase ?? ''),
+        duration: String(o.duration ?? ''),
+        deliverable: String(o.deliverable ?? ''),
+      };
+    })
+    .filter((t) => t.phase || t.deliverable);
+}
 
 interface Props {
   proposal: Proposal;
-  clientName: string;
+  clientCompany: string;
+  clientIndustry?: string;
+  contactEmail: string;
   slug: string;
 }
 
-export default function PublicProposal({ proposal, clientName, slug }: Props) {
-  const [accepted, setAccepted] = useState(!!proposal.accepted_at);
+export default function PublicProposal({
+  proposal,
+  clientCompany,
+  clientIndustry,
+  contactEmail,
+  slug,
+}: Props) {
+  const [accepted, setAccepted] = useState(Boolean(proposal.accepted_at));
   const [accepting, setAccepting] = useState(false);
+  const [error, setError] = useState('');
+  const [signerName, setSignerName] = useState('');
+  const [signerTitle, setSignerTitle] = useState('');
 
-  const battlecard = (proposal.battlecard || []).filter((r: BattlecardRow) => r.included);
-  const deliverables = (proposal.deliverables || []).filter((d: ProposalDeliverable) => d.included);
-  const pricing = proposal.pricing || [];
-  const roadmap = proposal.roadmap || [];
-  const closing: ProposalClosing = proposal.closing || {
-    headline: '',
-    body: '',
-    ctaLabel: '',
-    ctaLink: '',
-  };
+  const scopeLines = useMemo(() => {
+    const fromPdf = parseStringArray(proposal.scope_of_work);
+    if (fromPdf.length) return fromPdf;
+    const dels = (proposal.deliverables || []).filter((d: ProposalDeliverable) => d.included);
+    return dels.map((d) => d.title + (d.description ? ` — ${d.description}` : ''));
+  }, [proposal.deliverables, proposal.scope_of_work]);
 
-  async function handleAccept() {
+  const timeline = useMemo(() => {
+    const fromPdf = parseTimeline(proposal.client_timeline);
+    if (fromPdf.length) return fromPdf;
+    const rm = (proposal.roadmap || []) as RoadmapPhase[];
+    return rm.map((p) => ({
+      phase: p.title,
+      duration: p.timeline,
+      deliverable: p.description,
+    }));
+  }, [proposal.client_timeline, proposal.roadmap]);
+
+  const investment = useMemo(() => {
+    const amt = proposal.investment_amount;
+    const monthly = proposal.monthly_hosting ?? 49;
+    const tier = proposal.investment_tier_name ?? 'Professional';
+    const includes = parseStringArray(proposal.investment_includes);
+    if (amt != null && amt > 0) {
+      return { oneTime: amt, monthly, tier, includes };
+    }
+    const featured = (proposal.pricing || []).find((t: PricingTier) => t.featured) ?? proposal.pricing?.[0];
+    if (featured) {
+      return {
+        oneTime: featured.oneTimeFee,
+        monthly: featured.monthlyPrice,
+        tier: featured.name,
+        includes: featured.features.map((f) => f.text).filter(Boolean),
+      };
+    }
+    return null;
+  }, [proposal]);
+
+  const executive = proposal.executive_summary?.trim() || proposal.situation_summary || '';
+  const proposalNum = proposal.proposal_number || 'Proposal';
+  const validUntil = proposal.valid_until
+    ? new Date(proposal.valid_until).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : null;
+  const designBadge = clientIndustry || proposal.tagline || 'Custom';
+
+  async function handleAccept(e: React.FormEvent) {
+    e.preventDefault();
+    if (!signerName.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
     setAccepting(true);
+    setError('');
     try {
-      await fetch('/api/proposals/accept', {
+      const res = await fetch('/api/proposals/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug }),
+        body: JSON.stringify({
+          slug,
+          name: signerName.trim(),
+          title: signerTitle.trim() || null,
+        }),
       });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setError(data.error || 'Could not accept proposal.');
+        return;
+      }
       setAccepted(true);
     } catch {
-      alert('Something went wrong. Please try again.');
+      setError('Something went wrong. Please try again.');
     } finally {
       setAccepting(false);
     }
   }
 
   if (accepted) {
-    return <AcceptedScreen clientName={clientName} />;
+    return (
+      <AcceptedView
+        clientCompany={clientCompany}
+        signerName={signerName.trim() || proposal.accepted_by_name || 'there'}
+        acceptedAt={proposal.accepted_at ?? new Date().toISOString()}
+        contactEmail={contactEmail}
+      />
+    );
   }
 
   return (
-    <div className="proposal-public" style={{ background: 'var(--navy)', minHeight: '100vh' }}>
-      <style>{printStyles}</style>
-
-      {/* Header */}
-      <header className="section-padding text-center" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="max-w-3xl mx-auto">
-          <p className="text-xs uppercase tracking-[0.2em] mb-4 font-body font-semibold" style={{ color: 'var(--gold)' }}>
-            {proposal.tagline || 'Digital Growth Proposal'}
-          </p>
-          <h1 className="font-heading text-5xl md:text-6xl lg:text-7xl mb-4" style={{ color: 'var(--light)' }}>
-            {proposal.title || clientName}
-          </h1>
-          <div className="gold-divider my-6" />
-          <p className="text-sm" style={{ color: 'var(--muted)' }}>
-            Prepared {proposal.prep_date
-              ? new Date(proposal.prep_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-              : 'for you'
-            }
-            {' '}by <span style={{ color: 'var(--gold)' }}>Blue Harbor</span>
-          </p>
+    <div
+      className="min-h-screen pb-16"
+      style={{
+        background: BG,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        color: '#212529',
+      }}
+    >
+      <header
+        className="border-b px-4 py-6"
+        style={{ borderColor: '#E9ECEF', background: '#fff' }}
+      >
+        <div className="mx-auto flex max-w-[720px] flex-wrap items-center justify-between gap-4">
+          <div>
+            <div
+              className="text-lg font-semibold tracking-wide"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif", color: GOLD }}
+            >
+              Blue Harbor
+            </div>
+          </div>
+          <div className="text-right text-[11px] font-semibold uppercase tracking-widest" style={{ color: '#868E96' }}>
+            {proposalNum}
+          </div>
         </div>
       </header>
 
-      {/* Situation Summary */}
-      {proposal.situation_summary && (
-        <section className="section-padding">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="font-heading text-3xl md:text-4xl mb-6" style={{ color: 'var(--light)' }}>
-              The Situation
-            </h2>
-            <p className="text-base leading-relaxed" style={{ color: 'var(--silver)' }}>
-              {proposal.situation_summary}
-            </p>
-          </div>
-        </section>
-      )}
+      <main className="mx-auto max-w-[720px] px-4 py-10">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: GOLD }}>
+          Website redesign proposal
+        </p>
+        <h1
+          className="mt-2 text-3xl font-bold leading-tight sm:text-4xl"
+          style={{ fontFamily: "'Playfair Display', Georgia, serif", color: NAVY }}
+        >
+          Prepared for {clientCompany}
+        </h1>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span
+            className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide"
+            style={{ background: NAVY, color: GOLD }}
+          >
+            {designBadge}
+          </span>
+          {validUntil && (
+            <span className="rounded-full border px-3 py-1 text-[11px]" style={{ borderColor: '#dee2e6', color: '#495057' }}>
+              Valid until {validUntil}
+            </span>
+          )}
+        </div>
 
-      {/* Battlecard */}
-      {battlecard.length > 0 && (
-        <section className="section-padding" style={{ background: 'var(--navy2)' }}>
-          <div className="max-w-4xl mx-auto">
-            <h2 className="font-heading text-3xl md:text-4xl mb-8 text-center" style={{ color: 'var(--light)' }}>
-              Competitive Landscape
+        {executive && (
+          <section className="mt-10 rounded-2xl border p-6 sm:p-8" style={{ borderColor: '#E9ECEF', background: '#fff' }}>
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: GOLD }}>
+              Executive summary
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-                <thead>
-                  <tr>
-                    <th className="text-left py-3 px-4 font-body font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                      Category
-                    </th>
-                    <th className="text-left py-3 px-4 font-body font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--gold)', borderBottom: '1px solid var(--border-gold)' }}>
-                      You
-                    </th>
-                    <th className="text-left py-3 px-4 font-body font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                      Competitor
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {battlecard.map((row: BattlecardRow) => (
-                    <tr key={row.id}>
-                      <td className="py-3 px-4 font-semibold" style={{ color: 'var(--light)', borderBottom: '1px solid var(--border)' }}>
-                        {row.category}
-                      </td>
-                      <td className="py-3 px-4" style={{ color: 'var(--silver)', borderBottom: '1px solid var(--border)' }}>
-                        {row.client}
-                      </td>
-                      <td className="py-3 px-4" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)' }}>
-                        {row.competitor}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Deliverables */}
-      {deliverables.length > 0 && (
-        <section className="section-padding">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="font-heading text-3xl md:text-4xl mb-3 text-center" style={{ color: 'var(--light)' }}>
-              What We&apos;ll Deliver
-            </h2>
-            <p className="text-center text-sm mb-10" style={{ color: 'var(--muted)' }}>
-              A complete digital growth engine tailored to your business.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {deliverables.map((del: ProposalDeliverable) => (
-                <div
-                  key={del.id}
-                  className="p-5 rounded-lg"
-                  style={{ background: 'var(--card)', border: '1px solid var(--border-gold)' }}
-                >
-                  <h3 className="font-heading text-xl mb-2" style={{ color: 'var(--light)' }}>
-                    {del.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed mb-3" style={{ color: 'var(--silver)' }}>
-                    {del.description}
-                  </p>
-                  {del.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {del.tags.map(tag => (
-                        <span key={tag} className="badge badge-gold text-[10px]">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            <div className="mt-4 space-y-4 text-sm leading-relaxed" style={{ color: '#495057' }}>
+              {executive.split(/\n\n+/).map((para) => (
+                <p key={para.slice(0, 40)}>{para}</p>
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
 
-      {/* Pricing */}
-      {pricing.length > 0 && (
-        <section className="section-padding" style={{ background: 'var(--navy2)' }}>
-          <div className="max-w-4xl mx-auto">
-            <h2 className="font-heading text-3xl md:text-4xl mb-3 text-center" style={{ color: 'var(--light)' }}>
-              Investment
+        {scopeLines.length > 0 && (
+          <section className="mt-8">
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: GOLD }}>
+              Scope of work
             </h2>
-            <p className="text-center text-sm mb-10" style={{ color: 'var(--muted)' }}>
-              Choose the plan that fits your growth goals.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {pricing.map((tier: PricingTier) => (
-                <div
-                  key={tier.id}
-                  className="p-6 rounded-xl relative"
-                  style={{
-                    background: 'var(--card)',
-                    border: tier.featured ? '2px solid var(--gold)' : '1px solid var(--border)',
-                  }}
-                >
-                  {tier.featured && (
-                    <div
-                      className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-                      style={{ background: 'var(--gold)', color: 'var(--navy)' }}
-                    >
-                      Recommended
-                    </div>
-                  )}
-                  <h3 className="font-heading text-2xl mb-1" style={{ color: 'var(--light)' }}>
-                    {tier.name}
-                  </h3>
-                  <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
-                    {tier.subtitle}
-                  </p>
-                  <div className="mb-5">
-                    <span className="font-heading text-4xl" style={{ color: 'var(--gold)' }}>
-                      ${tier.monthlyPrice.toLocaleString()}
-                    </span>
-                    <span className="text-sm" style={{ color: 'var(--muted)' }}>/mo</span>
-                    {tier.oneTimeFee > 0 && (
-                      <div className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                        + ${tier.oneTimeFee.toLocaleString()} one-time setup
-                      </div>
-                    )}
-                  </div>
-                  <ul className="space-y-2.5">
-                    {tier.features.map(f => (
-                      <li key={f.id} className="flex items-start gap-2 text-sm" style={{ color: 'var(--silver)' }}>
-                        <span style={{ color: 'var(--gold)' }} className="mt-0.5 shrink-0">✓</span>
-                        {f.text}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            <ul className="mt-4 space-y-3">
+              {scopeLines.map((line) => (
+                <li key={line} className="flex gap-3 text-sm" style={{ color: '#495057' }}>
+                  <span
+                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+                    style={{ background: GREEN }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+                      <path d="M2 5l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  <span>{line}</span>
+                </li>
               ))}
-            </div>
-          </div>
-        </section>
-      )}
+            </ul>
+          </section>
+        )}
 
-      {/* Roadmap */}
-      {roadmap.length > 0 && (
-        <section className="section-padding">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="font-heading text-3xl md:text-4xl mb-10 text-center" style={{ color: 'var(--light)' }}>
-              The Roadmap
-            </h2>
-            <div className="relative">
-              <div
-                className="absolute left-4 top-0 bottom-0 w-px hidden md:block"
-                style={{ background: 'linear-gradient(to bottom, var(--gold), var(--border))' }}
-              />
-              <div className="space-y-8">
-                {roadmap.map((phase: RoadmapPhase, idx: number) => (
-                  <div key={phase.id} className="flex gap-5 md:pl-12 relative">
-                    <div
-                      className="hidden md:flex absolute left-0 w-8 h-8 rounded-full items-center justify-center text-xs font-bold shrink-0"
-                      style={{ background: 'var(--gold)', color: 'var(--navy)', top: '4px' }}
-                    >
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span
-                          className="md:hidden flex w-6 h-6 rounded-full items-center justify-center text-[10px] font-bold shrink-0"
-                          style={{ background: 'var(--gold)', color: 'var(--navy)' }}
-                        >
-                          {idx + 1}
-                        </span>
-                        <h3 className="font-heading text-xl" style={{ color: 'var(--light)' }}>
-                          {phase.title}
-                        </h3>
-                      </div>
-                      <span className="inline-block text-xs font-semibold mb-2 px-2 py-0.5 rounded" style={{ background: 'var(--gold-dim)', color: 'var(--gold)' }}>
-                        {phase.timeline}
-                      </span>
-                      <p className="text-sm leading-relaxed" style={{ color: 'var(--silver)' }}>
-                        {phase.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+        {investment && (
+          <section className="mt-10 overflow-hidden rounded-2xl border-2" style={{ borderColor: NAVY }}>
+            <div className="flex flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between" style={{ background: NAVY }}>
+              <div>
+                <div className="text-lg font-semibold text-white" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  {investment.tier}
+                </div>
+                <div className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                  One-time + hosting
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold sm:text-4xl" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: GOLD }}>
+                  ${investment.oneTime.toLocaleString()}
+                </div>
+                <div className="text-xs uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  one-time investment
+                </div>
+                <div className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  + ${investment.monthly.toLocaleString()}/mo hosting &amp; maintenance
+                </div>
               </div>
             </div>
-          </div>
-        </section>
-      )}
+            {investment.includes.length > 0 && (
+              <div className="bg-white px-6 py-6">
+                <h3 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#868E96' }}>
+                  Everything included
+                </h3>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {investment.includes.map((item) => (
+                    <div key={item} className="flex items-center gap-2 text-sm" style={{ color: '#495057' }}>
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: GOLD }} />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
-      {/* Closing / CTA */}
-      {(closing.headline || closing.body) && (
-        <section className="section-padding text-center" style={{ background: 'var(--navy2)' }}>
-          <div className="max-w-2xl mx-auto">
-            <h2 className="font-heading text-3xl md:text-4xl mb-4" style={{ color: 'var(--light)' }}>
-              {closing.headline}
+        {timeline.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: GOLD }}>
+              Timeline
             </h2>
-            <p className="text-base leading-relaxed mb-8" style={{ color: 'var(--silver)' }}>
-              {closing.body}
-            </p>
-            <div className="flex flex-col items-center gap-4">
-              {closing.ctaLink && closing.ctaLabel && (
-                <a
-                  href={closing.ctaLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost min-h-[52px] px-8 py-3 text-base"
+            <div className="mt-6 hidden gap-4 sm:flex sm:flex-wrap">
+              {timeline.map((t, i) => (
+                <div
+                  key={`${t.phase}-${i}`}
+                  className="min-w-[140px] flex-1 rounded-xl border p-4"
+                  style={{ borderColor: '#E9ECEF', background: '#fff' }}
                 >
-                  {closing.ctaLabel}
-                </a>
-              )}
-              <button
-                onClick={handleAccept}
-                disabled={accepting}
-                className="btn-primary min-h-[56px] px-10 py-4 text-base"
-              >
-                {accepting ? 'Accepting…' : 'Accept Proposal'}
-              </button>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                By accepting, you agree to move forward with the scope and investment outlined above.
-              </p>
+                  <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: GOLD }}>
+                    {t.phase}
+                  </div>
+                  <div className="mt-1 text-xs" style={{ color: '#868E96' }}>
+                    {t.duration}
+                  </div>
+                  <p className="mt-2 text-sm" style={{ color: '#495057' }}>
+                    {t.deliverable}
+                  </p>
+                </div>
+              ))}
             </div>
-          </div>
-        </section>
-      )}
+            <div className="mt-4 space-y-4 sm:hidden">
+              {timeline.map((t, i) => (
+                <div key={`m-${t.phase}-${i}`} className="rounded-xl border p-4" style={{ borderColor: '#E9ECEF', background: '#fff' }}>
+                  <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: GOLD }}>
+                    {t.phase}
+                  </div>
+                  <div className="text-xs" style={{ color: '#868E96' }}>
+                    {t.duration}
+                  </div>
+                  <p className="mt-2 text-sm" style={{ color: '#495057' }}>
+                    {t.deliverable}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
-      {/* Footer */}
-      <footer className="py-8 text-center" style={{ borderTop: '1px solid var(--border)' }}>
-        <p className="font-heading text-lg" style={{ color: 'var(--gold)' }}>Blue Harbor</p>
-        <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-          Digital Strategy & Growth
-        </p>
-      </footer>
+        <section
+          className="mt-12 rounded-2xl px-5 py-8 sm:px-8"
+          style={{ background: NAVY, color: '#fff' }}
+        >
+          <h2 className="text-lg font-semibold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            Ready to move forward?
+          </h2>
+          <p className="mt-3 text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
+            By accepting, you authorize Blue Harbor to proceed with the scope described above. A 50% deposit is due
+            at signing.
+          </p>
+          <form className="mt-6 space-y-4" onSubmit={handleAccept}>
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                Full name
+              </label>
+              <input
+                required
+                value={signerName}
+                onChange={(e) => setSignerName(e.target.value)}
+                className="w-full min-h-[44px] rounded-lg border-0 px-3 text-sm text-gray-900 outline-none"
+                placeholder="Your name"
+                autoComplete="name"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                Title (optional)
+              </label>
+              <input
+                value={signerTitle}
+                onChange={(e) => setSignerTitle(e.target.value)}
+                className="w-full min-h-[44px] rounded-lg border-0 px-3 text-sm text-gray-900 outline-none"
+                placeholder="Owner, CEO, etc."
+              />
+            </div>
+            {error && <p className="text-sm text-red-300">{error}</p>}
+            <button
+              type="submit"
+              disabled={accepting}
+              className="w-full min-h-[48px] rounded-lg text-sm font-bold uppercase tracking-wide disabled:opacity-50"
+              style={{ background: GOLD, color: NAVY }}
+            >
+              {accepting ? 'Submitting…' : 'Accept proposal & get started'}
+            </button>
+          </form>
+        </section>
+
+        <footer className="mt-16 text-center text-xs" style={{ color: '#868E96' }}>
+          <div style={{ fontFamily: "'Playfair Display', Georgia, serif", color: NAVY }} className="text-base font-semibold">
+            Blue Harbor
+          </div>
+          <p className="mt-1">Questions? Reply to your proposal email or visit blueharbor.com</p>
+        </footer>
+      </main>
     </div>
   );
 }
 
-function AcceptedScreen({ clientName }: { clientName: string }) {
+function AcceptedView({
+  clientCompany,
+  signerName,
+  acceptedAt,
+  contactEmail,
+}: {
+  clientCompany: string;
+  signerName: string;
+  acceptedAt: string;
+  contactEmail: string;
+}) {
+  const dateStr = new Date(acceptedAt).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
   return (
-    <div
-      style={{ background: 'var(--navy)', minHeight: '100vh' }}
-      className="flex items-center justify-center p-6"
-    >
-      <div className="text-center max-w-md">
+    <div className="min-h-screen px-4 py-16" style={{ background: BG, fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div className="mx-auto max-w-[520px] text-center">
+        <div className="text-lg font-semibold tracking-wide" style={{ fontFamily: "'Playfair Display', Georgia, serif", color: GOLD }}>
+          Blue Harbor
+        </div>
         <div
-          className="w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center text-3xl"
-          style={{ background: 'rgba(46,204,138,0.12)', border: '2px solid var(--green)' }}
+          className="mx-auto mt-10 flex h-16 w-16 items-center justify-center rounded-full text-2xl"
+          style={{ border: `3px solid ${GREEN}`, color: GREEN }}
         >
           ✓
         </div>
-        <h1 className="font-heading text-4xl mb-3" style={{ color: 'var(--light)' }}>
-          Proposal Accepted!
+        <h1
+          className="mt-8 text-3xl font-bold"
+          style={{ fontFamily: "'Playfair Display', Georgia, serif", color: NAVY }}
+        >
+          Proposal accepted
         </h1>
-        <p className="text-base mb-6" style={{ color: 'var(--silver)' }}>
-          Thank you, {clientName}. We&apos;re excited to get started.
+        <p className="mt-4 text-base" style={{ color: '#495057' }}>
+          Thank you, {signerName}. You&apos;re all set.
         </p>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Your account manager will reach out within 24 hours to kick things off.
+        <p className="mt-2 text-sm" style={{ color: '#868E96' }}>
+          {clientCompany} — {dateStr}
         </p>
-        <div className="gold-divider my-8" />
-        <p className="font-heading text-lg" style={{ color: 'var(--gold)' }}>Blue Harbor</p>
+
+        <div className="mt-10 rounded-2xl border bg-white p-6 text-left text-sm" style={{ borderColor: '#E9ECEF', color: '#495057' }}>
+          <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: GOLD }}>
+            What happens next
+          </h2>
+          <ol className="mt-4 list-decimal space-y-3 pl-5">
+            <li>We&apos;ll reach out within 1 business day.</li>
+            <li>
+              Deposit invoice will be sent to{' '}
+              {contactEmail ? <strong>{contactEmail}</strong> : 'your email on file'}.
+            </li>
+            <li>Work begins after the deposit is received.</li>
+          </ol>
+        </div>
+
+        <a
+          href="mailto:hello@blueharbor.com"
+          className="mt-10 inline-flex min-h-[44px] items-center justify-center rounded-lg px-6 text-sm font-semibold"
+          style={{ border: `2px solid ${NAVY}`, color: NAVY }}
+        >
+          Questions? Contact us →
+        </a>
       </div>
     </div>
   );
 }
-
-const printStyles = `
-@media print {
-  .proposal-public {
-    background: white !important;
-    color: #1a1a1a !important;
-  }
-  .proposal-public * {
-    color: #1a1a1a !important;
-    border-color: #e0e0e0 !important;
-  }
-  .proposal-public h1,
-  .proposal-public h2,
-  .proposal-public h3 {
-    color: #0b1425 !important;
-  }
-  .proposal-public .badge-gold {
-    background: #f5f0e0 !important;
-    color: #8b6914 !important;
-  }
-  .proposal-public button {
-    display: none !important;
-  }
-  .proposal-public section {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-  .proposal-public footer {
-    break-before: avoid;
-  }
-}
-`;

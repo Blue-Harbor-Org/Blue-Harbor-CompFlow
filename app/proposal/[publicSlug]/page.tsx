@@ -1,30 +1,40 @@
 import { notFound } from 'next/navigation';
-import { createAnonClient } from '@/lib/supabase';
+import { createAdminClient } from '@/lib/supabase';
 import PublicProposal from '@/components/proposal/PublicProposal';
 import type { Proposal } from '@/types/proposal';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PublicProposalPage(
-  { params }: PageProps<'/proposal/[publicSlug]'>
-) {
+export default async function PublicProposalPage({
+  params,
+}: PageProps<'/proposal/[publicSlug]'>) {
   const { publicSlug } = await params;
 
-  const supabase = createAnonClient();
+  const admin = createAdminClient();
+  const { data: proposal, error } = await admin
+    .from('bh_proposals')
+    .select('*')
+    .eq('public_slug', publicSlug)
+    .maybeSingle();
 
-  const { data, error } = await supabase
-    .rpc('get_proposal_by_slug', { p_slug: publicSlug })
-    .single();
+  if (error || !proposal) notFound();
 
-  if (error || !data) notFound();
+  const { data: clientRow } = await admin
+    .from('bh_clients')
+    .select('company_name, industry, contact_email, contact_name')
+    .eq('id', proposal.client_id as string)
+    .maybeSingle();
 
-  const proposal = data as unknown as Proposal;
-  const clientName = proposal.title || 'Client';
+  const typed = proposal as unknown as Proposal;
+  const clientCompany = clientRow?.company_name ?? typed.title ?? 'Your business';
+  const contactEmail = clientRow?.contact_email ?? '';
 
   return (
     <PublicProposal
-      proposal={proposal}
-      clientName={clientName}
+      proposal={typed}
+      clientCompany={clientCompany}
+      clientIndustry={clientRow?.industry ?? undefined}
+      contactEmail={contactEmail}
       slug={publicSlug}
     />
   );

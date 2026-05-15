@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { createBrowserClient } from '@/lib/supabase';
 import type { Client, PipelineStatus, TeamMember } from '@/types/dashboard';
 import { PIPELINE_COLUMNS } from '@/types/dashboard';
@@ -108,6 +109,32 @@ export default function ClientPipelineView({ initialClients, teamMembers }: Prop
     return counts;
   }, [clients]);
 
+  if (clients.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center rounded-xl px-6 py-16 text-center"
+        style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      >
+        <div className="mb-4 text-4xl" aria-hidden>
+          📋
+        </div>
+        <h2 className="text-lg font-semibold" style={{ color: 'var(--light)' }}>
+          No clients yet
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: 'var(--muted)' }}>
+          Share your intake link with prospects after you create a client from a lead. Add a lead to get started.
+        </p>
+        <Link
+          href="/dashboard/leads/new"
+          className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 text-sm font-semibold"
+          style={{ background: 'var(--gold)', color: 'var(--navy)' }}
+        >
+          Add a lead
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Status summary bar */}
@@ -192,7 +219,10 @@ export default function ClientPipelineView({ initialClients, teamMembers }: Prop
       {viewMode === 'kanban' ? (
         <ClientKanbanView clients={filteredClients} onStatusDrop={handleStatusDrop} />
       ) : (
-        <ClientTableView clients={filteredClients} />
+        <ClientTableView
+          clients={filteredClients}
+          emptyFilterMessage={filteredClients.length === 0 && clients.length > 0 ? 'No clients match your filters.' : undefined}
+        />
       )}
     </div>
   );

@@ -10,6 +10,7 @@ import { normalizeIndustryId } from '@/lib/verticals';
 import type { Lead } from '@/types/lead';
 import { getResolvedCompetitors } from '@/lib/competitorLead';
 import { buildCompetitorsForNewLead } from '@/lib/competitorLead';
+import { getClientIdForLeadId, logActivity } from '@/lib/dashboard';
 
 export const maxDuration = 60;
 
@@ -153,6 +154,17 @@ export async function POST(req: NextRequest) {
       } catch (emailErr) {
         console.error('Email send failed:', emailErr);
       }
+    }
+
+    const bhClientId = await getClientIdForLeadId(supabase, leadId);
+    if (bhClientId) {
+      await logActivity(
+        bhClientId,
+        auth.user.id,
+        'general',
+        'Competitive report generated',
+        { lead_id: leadId }
+      );
     }
 
     return NextResponse.json({

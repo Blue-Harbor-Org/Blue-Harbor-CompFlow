@@ -1,13 +1,27 @@
 # Blue Harbor Audit Summary
 
-Updated: 2026-05-15
+Updated: 2026-05-14
 
 ## Current Status
 
 - The major `bh_` migration breakages from the first audit are now fixed in the app and in the live Supabase schema.
-- `npx tsc --noEmit` passes.
-- `npm run build` now passes.
-- `npx eslint app lib components types --ext .ts,.tsx` passes.
+- After Session 5 changes, re-run: `npx eslint app lib components types --ext .ts,.tsx`, `npx tsc --noEmit`, `npm run build`.
+
+## Session 5 — Proposal Page + Client Portal + Intake RLS
+Date: 2026-05-14
+Completed:
+- Public proposal acceptance page rebuilt — premium branded layout, pending/accepted states (`app/proposal`, `components/proposal/PublicProposal.tsx`)
+- Proposal accepted → team notification email via Resend (optional portal link) + client “project started” email with portal URL (`lib/resend.ts`, `app/api/proposals/accept/route.ts`)
+- Client status portal at `/portal/[token]` — stages, page status, progress bar, meta refresh every 30s while not live (`app/portal`, `components/portal/*`, `sql/bh-session5-portal.sql` RPC `get_portal_snapshot`)
+- Intake hardened — `x-intake-token` required (401 if missing); mismatch returns 403 “Invalid or expired intake link”; validated against `bh_clients.intake_token` (`app/api/intake/route.ts`, `sql/bh-session5-intake-rls.sql`)
+- Proposal status badges in pipeline (`ProposalStatusBadge`, `ClientCard`, `ClientTableView`)
+- Quick actions on client detail + lead slideout; lead slideout resolves `bh_clients` id via `GET /api/dashboard/lead-client-bridge`
+- Activity log: mockup approval route, recent activity on overview + slideout; key events logged from existing API routes
+- Empty states: pipeline with no clients, buildout manager, client overview report/mockup copy
+- `bh_proposals` extended fields + generate-pdf persistence (Session 5 SQL)
+- SQL: `sql/bh-session5-proposal-fields.sql`, `sql/bh-session5-portal.sql`, `sql/bh-session5-intake-rls.sql`
+Open findings: none — intake finding #1 mitigated with per-client `intake_token` + explicit 401/403 responses (full anon JWT RLS deferred)
+Next session: Launch prep — rate limiting, error monitoring, onboarding email sequence, marketing page
 
 ## Session 4 — Proposal PDF + Email Delivery
 Date: 2026-05-15
@@ -22,8 +36,6 @@ Completed:
 - Proposal builder UI — generate PDF, preview link, email client, regenerate (`components/proposal/ProposalBuilder.tsx`, `pdfMockupId` from proposal page)
 - `middleware.ts` migrated to `proxy.ts` with `export async function proxy` (Next.js 16 convention)
 - `next.config.ts` — `serverExternalPackages` for Puppeteer/Chromium
-Open findings remaining: #1 (intake RLS — medium, non-blocking)
-Next session: Public-facing proposal acceptance page polish + client portal
 
 ## Session 2 — UI/UX + Mockup Maker
 Date: 2026-05-13
@@ -69,7 +81,6 @@ Next session: Proposal PDF generator from approved mockup + Resend email deliver
 
 | ID | Severity | Issue | Evidence | Impact |
 | --- | --- | --- | --- | --- |
-| 1 | medium | The public intake API still bypasses database RLS by using the service-role client directly and trusting an app-level `x-intake-token` header. | `app/api/intake/route.ts:4-16`, `app/api/intake/route.ts:41-64`, `app/api/intake/route.ts:108-190` | Security for public intake access still depends on route code and token secrecy, not on the anon role exercising the database access model directly. |
 | 3 | low | Configure a real `RESEND_API_KEY` in `.env.local` when you want emails to send (placeholders and empty keys are ignored safely). | `.env.example`, `lib/resend.ts` (`getResendClient`) | Until set, Resend calls return `{ error: 'not_configured' }` and proposal/report emails are skipped without throwing. |
 | 4 | resolved | Migrated deprecated `middleware.ts` to `proxy.ts` per Next.js 16. | `proxy.ts:4-31` | Build shows “ƒ Proxy (Middleware)” and the deprecation warning for `middleware.ts` is gone. |
 

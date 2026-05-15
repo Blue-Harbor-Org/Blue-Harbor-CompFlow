@@ -149,12 +149,20 @@ export async function POST(req: Request) {
     .maybeSingle();
 
   if (latestProposal?.id) {
+    const includes = content.investmentTier.includes;
     const { error: updateErr } = await admin
       .from('bh_proposals')
       .update({
         pdf_url: publicUrl,
         proposal_number: proposalNumber,
         investment_amount: content.investmentTier.price,
+        monthly_hosting: content.investmentTier.monthlyHosting,
+        investment_tier_name: content.investmentTier.name,
+        investment_includes: includes,
+        scope_of_work: content.scopeOfWork,
+        client_timeline: content.timeline,
+        executive_summary: content.executiveSummary,
+        valid_until: validUntil,
         updated_at: new Date().toISOString(),
       })
       .eq('id', latestProposal.id);

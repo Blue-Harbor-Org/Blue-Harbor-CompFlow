@@ -36,6 +36,13 @@ export interface ActivityLogEntry {
   team_member?: TeamMember | null;
 }
 
+export type LatestProposalBadge =
+  | 'none'
+  | 'draft'
+  | 'sent'
+  | 'signed'
+  | 'paused';
+
 export interface Client {
   id: string;
   lead_id?: string | null;
@@ -60,4 +67,9 @@ export interface Client {
   competitors: { id: string; name: string; url: string; source: string; autoFound: boolean }[] | null;
   assigned_member?: TeamMember | null;
   report_summary?: string | null;
+  /** Latest bh_proposals row snapshot for pipeline badges */
+  latest_proposal_status?: LatestProposalBadge;
+  /** Latest buildout portal token for “View portal” quick action */
+  portal_token?: string | null;
+  intake_token?: string | null;
 }

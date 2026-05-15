@@ -94,18 +94,21 @@ export function BuildoutManager({ clientId, initialBuildout, initialPages }: Pro
   if (!buildout) {
     return (
       <div className="rounded-xl p-8 text-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+        <div className="mb-2 text-2xl" aria-hidden>
+          🏗️
+        </div>
         <h2 className="text-lg font-semibold" style={{ color: 'var(--light)' }}>
-          No buildout yet
+          Site not built yet
         </h2>
         <p className="mt-2 text-sm" style={{ color: 'var(--muted)' }}>
-          Approve a mockup and start a full site buildout first.
+          Start a full site buildout from the Website tab after the mockup is approved.
         </p>
         <a
           href={`/dashboard/clients/${clientId}?tab=website`}
-          className="mt-4 inline-flex rounded-lg px-4 py-2 text-sm font-semibold"
+          className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-lg px-5 text-sm font-semibold"
           style={{ background: 'var(--gold)', color: 'var(--navy)' }}
         >
-          Open Mockup Maker
+          Start building →
         </a>
       </div>
     );

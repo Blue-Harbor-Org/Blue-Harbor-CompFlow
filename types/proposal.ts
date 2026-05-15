@@ -73,6 +73,20 @@ export interface Proposal {
   status: string;
   public_slug: string | null;
   prep_date: string | null;
+  /** Session 5 — PDF / public proposal fields (optional until migrated) */
+  proposal_number?: string | null;
+  investment_amount?: number | null;
+  monthly_hosting?: number | null;
+  investment_tier_name?: string | null;
+  investment_includes?: string[] | null;
+  scope_of_work?: string[] | null;
+  client_timeline?: Array<{ phase: string; duration: string; deliverable: string }> | null;
+  executive_summary?: string | null;
+  accepted_by_name?: string | null;
+  accepted_by_title?: string | null;
+  pdf_url?: string | null;
+  valid_until?: string | null;
+  portal_token?: string | null;
 }
 
 export const DEFAULT_DELIVERABLES: ProposalDeliverable[] = [

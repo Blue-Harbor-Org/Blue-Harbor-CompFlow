@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Lead } from '@/types/lead';
 import type { Report } from '@/types/report';
+import type { ActivityLogEntry } from '@/types/dashboard';
 import StatusBadge from '@/components/admin/StatusBadge';
 import StatusDropdown from '@/components/admin/StatusDropdown';
 import IndustrySelect from '@/components/admin/IndustrySelect';
@@ -51,6 +52,32 @@ export default function LeadSlideout({
     leadId: string | null;
     tab: 'overview' | 'report' | 'notes';
   }>({ leadId: null, tab: 'overview' });
+  const [bridge, setBridge] = useState<{
+    clientId: string | null;
+    portalToken: string | null;
+    activity: ActivityLogEntry[];
+  }>({ clientId: null, portalToken: null, activity: [] });
+
+  useEffect(() => {
+    if (!open || !lead) return;
+    let cancelled = false;
+    void fetch(`/api/dashboard/lead-client-bridge?leadId=${lead.id}`)
+      .then((r) => r.json())
+      .then((j: { clientId?: string | null; portalToken?: string | null; activity?: ActivityLogEntry[] }) => {
+        if (cancelled) return;
+        setBridge({
+          clientId: j.clientId ?? null,
+          portalToken: j.portalToken ?? null,
+          activity: Array.isArray(j.activity) ? j.activity : [],
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setBridge({ clientId: null, portalToken: null, activity: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, lead]);
 
   useEffect(() => {
     if (!open) return;
@@ -76,6 +103,8 @@ export default function LeadSlideout({
   const base = getPublicSiteUrl();
   const teaserUrl = `${base}/report/${lead.report_token}`;
   const fullUrl = `${base}/report/${lead.report_token}/full?admin=true`;
+  const workspaceClientId = bridge.clientId ?? lead.id;
+  const portalUrl = bridge.portalToken ? `${base}/portal/${bridge.portalToken}` : null;
 
   const tabBtn =
     'min-h-[44px] flex-1 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors duration-150';
@@ -258,12 +287,6 @@ export default function LeadSlideout({
                 >
                   📋 Copy full report link
                 </button>
-                <Link
-                  href={`/dashboard/clients/${lead.id}?tab=website`}
-                  className="btn-primary min-h-[44px] w-full py-3 text-center text-sm"
-                >
-                  Generate Mockup
-                </Link>
                 {lead.phone && (
                   <a href={`tel:${lead.phone.replace(/\s/g, '')}`} className="btn-primary min-h-[44px] w-full py-3 text-center text-sm">
                     📞 Call {lead.phone}
@@ -273,6 +296,66 @@ export default function LeadSlideout({
                   ✉️ Email {lead.email}
                 </a>
               </section>
+
+              <section className="space-y-3 border-t pt-5" style={{ borderColor: 'var(--border)' }}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+                  Quick actions
+                </h3>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href={`/dashboard/clients/${workspaceClientId}?tab=website`}
+                    className="btn-ghost min-h-[44px] w-full py-3 text-center text-sm"
+                  >
+                    📄 Generate mockup
+                  </Link>
+                  <Link
+                    href={`/dashboard/clients/${workspaceClientId}/proposal`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost min-h-[44px] w-full py-3 text-center text-sm"
+                  >
+                    📑 Send proposal
+                  </Link>
+                  <Link href={`/dashboard/clients/${workspaceClientId}/buildout`} className="btn-ghost min-h-[44px] w-full py-3 text-center text-sm">
+                    🚀 Build site
+                  </Link>
+                  {portalUrl && (
+                    <a
+                      href={portalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-ghost min-h-[44px] w-full py-3 text-center text-sm"
+                    >
+                      👁 View portal
+                    </a>
+                  )}
+                </div>
+              </section>
+
+              {bridge.activity.length > 0 && (
+                <section className="space-y-2 border-t pt-5" style={{ borderColor: 'var(--border)' }}>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+                    Recent activity
+                  </h3>
+                  <ul className="space-y-2">
+                    {bridge.activity.map((entry) => (
+                      <li key={entry.id} className="text-[11px]" style={{ color: 'var(--silver)' }}>
+                        <div className="flex justify-between gap-2">
+                          <span className="min-w-0 flex-1 leading-snug">{entry.description}</span>
+                          <span className="shrink-0 text-[10px]" style={{ color: 'var(--muted)' }}>
+                            {new Date(entry.created_at).toLocaleString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
             </div>
           )}
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Client, TeamMember } from '@/types/dashboard';
+import type { Client, TeamMember, ActivityLogEntry } from '@/types/dashboard';
 import type { Report } from '@/types/report';
 import GenerateReportButton from '@/components/admin/GenerateReportButton';
 import UnlockButton from '@/components/admin/UnlockButton';
@@ -13,6 +13,9 @@ interface Props {
   currentMember: TeamMember;
   standardReport: Report | null;
   deepdiveReport: Report | null;
+  recentActivity?: ActivityLogEntry[];
+  mockupCount?: number;
+  onOpenWebsiteTab?: () => void;
 }
 
 export default function ClientOverviewTab({
@@ -20,6 +23,9 @@ export default function ClientOverviewTab({
   currentMember,
   standardReport,
   deepdiveReport,
+  recentActivity = [],
+  mockupCount = 0,
+  onOpenWebsiteTab,
 }: Props) {
   const router = useRouter();
   const initialNotes = client.notes ?? '';
@@ -152,13 +158,13 @@ export default function ClientOverviewTab({
         ) : showStandardGenerate && client.lead_id ? (
           <div className="space-y-3">
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              No standard report has been generated for this client yet.
+              No competitive report yet.
             </p>
             <GenerateReportButton leadId={client.lead_id} onDone={refresh} />
           </div>
         ) : (
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            No standard report is linked to this client yet.
+            No competitive report yet — link a lead to generate a report.
           </p>
         )}
       </Card>
@@ -182,7 +188,7 @@ export default function ClientOverviewTab({
           </div>
         ) : (
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            No deep dive report generated yet.
+            No deep dive report yet.
           </p>
         )}
       </Card>
@@ -193,18 +199,35 @@ export default function ClientOverviewTab({
         actionColor={mockupGenerating ? 'var(--gold)' : mockupSaved ? 'var(--green)' : 'transparent'}
       >
         <div className="space-y-3">
+          {mockupCount === 0 && (
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              No mockup yet.
+            </p>
+          )}
+          {mockupCount === 0 && onOpenWebsiteTab && (
+            <button
+              type="button"
+              onClick={onOpenWebsiteTab}
+              className="w-full rounded-lg px-3 py-2 text-xs font-semibold min-h-[44px]"
+              style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+            >
+              Create mockup →
+            </button>
+          )}
           <p className="text-xs" style={{ color: 'var(--muted)' }}>
             Generate or refresh the homepage mockup with the uniqueness-first design engine.
           </p>
-          <button
-            type="button"
-            onClick={() => void regenerateMockup()}
-            disabled={mockupGenerating}
-            className="w-full rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
-            style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
-          >
-            {mockupGenerating ? 'Generating mockup...' : 'Regenerate mockup'}
-          </button>
+          {mockupCount > 0 && (
+            <button
+              type="button"
+              onClick={() => void regenerateMockup()}
+              disabled={mockupGenerating}
+              className="w-full rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+              style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+            >
+              {mockupGenerating ? 'Generating mockup...' : 'Regenerate mockup'}
+            </button>
+          )}
         </div>
       </Card>
 
@@ -233,6 +256,26 @@ export default function ClientOverviewTab({
               </div>
             ))}
           </div>
+        </Card>
+      )}
+
+      {recentActivity.length > 0 && (
+        <Card title="Recent activity" className="lg:col-span-2">
+          <ul className="space-y-2">
+            {recentActivity.map((entry) => (
+              <li key={entry.id} className="flex items-start justify-between gap-3 text-xs" style={{ color: 'var(--silver)' }}>
+                <span className="min-w-0 flex-1">{entry.description}</span>
+                <span className="shrink-0 text-[10px]" style={{ color: 'var(--muted)' }}>
+                  {new Date(entry.created_at).toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
     </div>

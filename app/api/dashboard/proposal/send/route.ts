@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { sendProposalEmail } from '@/lib/resend';
+import { logActivity } from '@/lib/dashboard';
 
 export async function POST(req: Request) {
   const auth = await requireTeamMember();
@@ -91,6 +92,14 @@ export async function POST(req: Request) {
       })
       .eq('id', latestProposal.id);
   }
+
+  await logActivity(
+    clientId,
+    auth.user.id,
+    'proposal',
+    `Proposal ${proposalNumber} sent to ${row.contact_email}`,
+    { proposal_number: proposalNumber }
+  );
 
   return NextResponse.json({ ok: true, emailId: result.id, skippedEmail: result.error === 'not_configured' });
 }

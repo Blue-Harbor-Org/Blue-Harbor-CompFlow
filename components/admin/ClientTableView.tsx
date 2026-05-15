@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Client, PipelineStatus } from '@/types/dashboard';
 import { PIPELINE_COLUMNS } from '@/types/dashboard';
 import { Avatar } from '@/components/admin/DashboardShell';
+import { ProposalStatusBadge } from '@/components/admin/ProposalStatusBadge';
 
 function StatusBadge({ status }: { status: PipelineStatus }) {
   const col = PIPELINE_COLUMNS.find((c) => c.status === status);
@@ -27,13 +28,15 @@ function daysSince(dateStr: string): number {
 
 interface Props {
   clients: Client[];
+  /** When filters exclude all rows but pipeline has clients */
+  emptyFilterMessage?: string;
 }
 
-export default function ClientTableView({ clients }: Props) {
+export default function ClientTableView({ clients, emptyFilterMessage }: Props) {
   if (clients.length === 0) {
     return (
-      <div className="py-16 text-center" style={{ color: 'var(--muted)' }}>
-        No clients found
+      <div className="py-16 text-center text-sm" style={{ color: 'var(--muted)' }}>
+        {emptyFilterMessage ?? 'No clients match your filters.'}
       </div>
     );
   }
@@ -65,6 +68,9 @@ export default function ClientTableView({ clients }: Props) {
                     {client.business_name}
                   </div>
                   <div className="text-xs" style={{ color: 'var(--muted)' }}>{client.contact_name}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <ProposalStatusBadge status={client.latest_proposal_status} />
+                  </div>
                   {client.report_summary && (
                     <div className="mt-1 max-w-md truncate text-[11px]" style={{ color: 'var(--muted)' }}>
                       {client.report_summary}

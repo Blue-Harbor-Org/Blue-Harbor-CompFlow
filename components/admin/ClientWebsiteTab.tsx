@@ -202,7 +202,17 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
           </button>
           <button
             type="button"
-            onClick={() => setStep('approved')}
+            onClick={() => {
+              void (async () => {
+                const name = getArchetypeName(selectedMockup);
+                await fetch('/api/dashboard/approve-mockup', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ clientId: client.id, archetypeName: name }),
+                });
+                setStep('approved');
+              })();
+            }}
             className="rounded-lg px-3 py-1.5 text-xs font-semibold"
             style={{ background: 'var(--gold)', color: 'var(--navy)' }}
           >

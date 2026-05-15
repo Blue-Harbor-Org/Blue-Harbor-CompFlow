@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Client } from '@/types/dashboard';
 import { PIPELINE_COLUMNS } from '@/types/dashboard';
 import { Avatar } from '@/components/admin/DashboardShell';
+import { ProposalStatusBadge } from '@/components/admin/ProposalStatusBadge';
 
 function daysSince(dateStr: string): number {
   const then = new Date(dateStr).getTime();
@@ -75,6 +76,7 @@ export default function ClientCard({ client, compact }: ClientCardProps) {
         >
           {statusLabel(client.pipeline_status)}
         </span>
+        <ProposalStatusBadge status={client.latest_proposal_status} />
         <span className="text-[11px] font-medium" style={{ color: 'var(--muted)' }}>
           Added {new Date(client.created_at).toLocaleDateString()}
         </span>

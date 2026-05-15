@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Client } from '@/types/dashboard';
 import type { ClientIntakeRecord } from '@/types/client-intake';
+import { getPublicSiteUrl } from '@/lib/siteUrl';
 
 interface Props {
   client: Client;
@@ -14,8 +15,42 @@ export default function ClientIntakeTab({ client, intake }: Props) {
   const workingIntake = intake ?? createEmptyIntake(client.id);
   const submissionId = intake?.source === 'bh' ? intake.id : undefined;
 
+  const intakeUrl =
+    client.intake_token != null && client.intake_token !== ''
+      ? `${getPublicSiteUrl()}/intake/${client.id}?token=${client.intake_token}`
+      : null;
+  const [copied, setCopied] = useState(false);
+
   return (
     <div className="space-y-4">
+      {intakeUrl && (
+        <div
+          className="flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between"
+          style={{ background: 'var(--navy3)', border: '1px solid var(--border)' }}
+        >
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+              Client intake link
+            </div>
+            <div className="mt-1 truncate font-mono text-[11px]" style={{ color: 'var(--silver)' }} title={intakeUrl}>
+              {intakeUrl}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="min-h-[44px] shrink-0 rounded-lg px-4 text-xs font-semibold"
+            style={{ background: 'var(--gold-dim)', color: 'var(--gold)', border: '1px solid var(--border-gold)' }}
+            onClick={() => {
+              void navigator.clipboard.writeText(intakeUrl);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }}
+          >
+            {copied ? 'Copied' : 'Copy link'}
+          </button>
+        </div>
+      )}
+
       {!intake ? (
         <Banner
           title="No intake row yet"

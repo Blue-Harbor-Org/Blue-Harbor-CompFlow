@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase';
-import type { Client, TeamMember, ActivityLogEntry } from '@/types/dashboard';
+import type { Client, LatestProposalBadge, TeamMember, ActivityLogEntry } from '@/types/dashboard';
 import { getBhClientContext } from '@/lib/bh-client-context';
 
 function toBhTeamMember(row: Record<string, unknown>): TeamMember {
@@ -21,15 +21,82 @@ export async function getTeamMemberByUserId(userId: string): Promise<TeamMember 
   return data ? toBhTeamMember(data) : null;
 }
 
+function latestProposalBadge(
+  row: { status: string; accepted_at: string | null; sent_at: string | null } | null | undefined
+): LatestProposalBadge {
+  if (!row) return 'none';
+  if (row.accepted_at || row.status === 'signed') return 'signed';
+  if (row.status === 'paused') return 'paused';
+  if (row.status === 'proposal_sent' || row.sent_at) return 'sent';
+  if (row.status === 'proposal_draft') return 'draft';
+  return 'none';
+}
+
+export async function getClientIdForLeadId(
+  admin: ReturnType<typeof createAdminClient>,
+  leadId: string
+): Promise<string | null> {
+  const { data: report } = await admin
+    .from('reports')
+    .select('id')
+    .eq('lead_id', leadId)
+    .eq('report_type', 'standard')
+    .maybeSingle();
+  if (!report) return null;
+  const { data: client } = await admin
+    .from('bh_clients')
+    .select('id')
+    .eq('report_id', report.id)
+    .maybeSingle();
+  return client?.id ?? null;
+}
+
 export async function getClients(): Promise<Client[]> {
   const admin = createAdminClient();
 
-  const [{ data: clients }, { data: members }, { data: reports }, { data: leads }] = await Promise.all([
+  const [
+    { data: clients },
+    { data: members },
+    { data: reports },
+    { data: leads },
+    { data: proposalRows },
+    { data: buildoutRows },
+  ] = await Promise.all([
     admin.from('bh_clients').select('*').order('created_at', { ascending: false }),
     admin.from('bh_team_members').select('*'),
     admin.from('reports').select('id, lead_id, report_type'),
     admin.from('leads').select('*'),
+    admin
+      .from('bh_proposals')
+      .select('client_id, status, accepted_at, sent_at, created_at')
+      .order('created_at', { ascending: false }),
+    admin
+      .from('bh_site_buildouts')
+      .select('client_id, portal_token, created_at')
+      .order('created_at', { ascending: false }),
   ]);
+
+  const latestProposalByClient = new Map<
+    string,
+    { status: string; accepted_at: string | null; sent_at: string | null }
+  >();
+  for (const p of proposalRows ?? []) {
+    const cid = p.client_id as string;
+    if (!latestProposalByClient.has(cid)) {
+      latestProposalByClient.set(cid, {
+        status: p.status as string,
+        accepted_at: p.accepted_at as string | null,
+        sent_at: p.sent_at as string | null,
+      });
+    }
+  }
+
+  const portalTokenByClient = new Map<string, string>();
+  for (const b of buildoutRows ?? []) {
+    const cid = b.client_id as string;
+    const tok = b.portal_token as string | null;
+    if (tok && !portalTokenByClient.has(cid)) portalTokenByClient.set(cid, tok);
+  }
 
   const memberByUserId = new Map(
     (members ?? []).map(m => [m.user_id, toBhTeamMember(m)])
@@ -66,6 +133,9 @@ export async function getClients(): Promise<Client[]> {
       competitor_url: lead?.competitor_url ?? null,
       competitor_name: lead?.competitor_name ?? null,
       competitors: lead?.competitors ?? null,
+      intake_token: (c as { intake_token?: string | null }).intake_token ?? null,
+      latest_proposal_status: latestProposalBadge(latestProposalByClient.get(c.id)),
+      portal_token: portalTokenByClient.get(c.id) ?? null,
     };
   }) as Client[];
 }
@@ -86,6 +156,23 @@ export async function getClient(clientId: string): Promise<Client | null> {
     if (member) assigned_member = toBhTeamMember(member);
   }
 
+  const [{ data: latestProp }, { data: latestBuild }] = await Promise.all([
+    admin
+      .from('bh_proposals')
+      .select('status, accepted_at, sent_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from('bh_site_buildouts')
+      .select('portal_token')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
   return {
     ...client,
     lead_id: lead?.id ?? null,
@@ -104,6 +191,11 @@ export async function getClient(clientId: string): Promise<Client | null> {
     competitor_url: lead?.competitor_url ?? null,
     competitor_name: lead?.competitor_name ?? null,
     competitors: lead?.competitors ?? null,
+    intake_token: client.intake_token ?? null,
+    latest_proposal_status: latestProposalBadge(
+      latestProp as { status: string; accepted_at: string | null; sent_at: string | null } | null
+    ),
+    portal_token: (latestBuild as { portal_token?: string } | null)?.portal_token ?? null,
   } as Client;
 }
 

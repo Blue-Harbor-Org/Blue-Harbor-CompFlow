@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { requireTeamMember, isAuthError } from '@/lib/auth-guard';
 import { createAdminClient } from '@/lib/supabase';
 import { getBhClientContext } from '@/lib/bh-client-context';
+import { logActivity } from '@/lib/dashboard';
 import { STANDARD_PAGES, buildPagePrompt } from '@/lib/buildout-pages';
 import { fetchPhotos, buildPhotoQuery } from '@/lib/mockup-media';
 
@@ -96,6 +97,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: buildoutError?.message ?? 'Failed to create buildout record' }, { status: 500 });
   }
 
+  await logActivity(
+    clientId,
+    auth.user.id,
+    'general',
+    'Site buildout started — 4-page site generation',
+    { buildout_id: buildout.id }
+  );
+
   const homepageHtml = mockup.html_content ?? '';
   const shared = extractSharedElements(homepageHtml);
   const generatedPages: Array<{ slug: string; title: string; html: string }> = [
@@ -182,6 +191,14 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', buildout.id);
+
+  await logActivity(
+    clientId,
+    auth.user.id,
+    'general',
+    'Site buildout pages generated',
+    { buildout_id: buildout.id }
+  );
 
   return NextResponse.json({
     buildoutId: buildout.id,
