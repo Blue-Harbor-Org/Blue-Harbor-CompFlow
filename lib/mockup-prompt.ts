@@ -1,4 +1,5 @@
 import type { DesignArchetype } from '@/lib/mockup-archetypes';
+import type { MediaPhoto, MediaIcon } from '@/lib/mockup-media';
 
 export function buildMockupPrompt({
   businessName,
@@ -7,6 +8,8 @@ export function buildMockupPrompt({
   competitorUrl,
   vibeNotes,
   archetype,
+  photos,
+  icons,
 }: {
   businessName: string;
   industry: string;
@@ -14,7 +17,35 @@ export function buildMockupPrompt({
   competitorUrl?: string;
   vibeNotes?: string;
   archetype: DesignArchetype;
+  photos: MediaPhoto[];
+  icons: MediaIcon[];
 }): { system: string; user: string } {
+  const mediaSection = photos.length > 0 || icons.length > 0
+    ? `
+
+MEDIA ASSETS - USE THESE IN THE DESIGN:
+
+PHOTOS (use as <img src="..."> tags with the provided URLs directly):
+${photos.map((p, i) => `Photo ${i + 1}: ${p.url}
+  Alt text: "${p.alt}"
+  Credit: ${p.credit} (${p.source})`).join('\n')}
+
+SVG ICONS (paste the SVG code inline where icons are needed):
+${icons.map((icon) => `Icon "${icon.name}":
+${icon.svg}`).join('\n\n')}
+
+RULES FOR MEDIA USE:
+- Use at least 3 of the provided photos when 3 or more are available - place them as real <img> tags, not CSS backgrounds where possible
+- Scale photos appropriately: hero images full-width, service photos 400px tall, team/profile photos square
+- Use icons in the services section, feature lists, and contact info - inline the SVG directly into the HTML
+- Add photo credits as a tiny footnote at the page bottom: "Photos: ${photos.map((p) => p.credit).join(', ')}"
+- Never use placeholder boxes or colored divs when photos are provided
+- If a photo URL returns a 404 at render time, the img tag should have object-fit: cover on a colored fallback background`
+    : `
+
+MEDIA ASSETS:
+No external photo assets were available. Use strong layout, typography, color, and inline SVG/CSS graphics. Do not mention missing API keys.`;
+
   const system = `You are an expert web designer who creates visually stunning, completely unique websites. You never produce generic output. Every site you design is distinctive and memorable.
 
 DESIGN ARCHETYPE ASSIGNED: ${archetype.name}
@@ -45,7 +76,7 @@ GLOBAL RULES (apply to every generation regardless of archetype):
 - The design must look like it was made by a human designer who deeply understands this specific industry
 - Include real placeholder content (fake but realistic business name, phone, address, services) - never use Lorem Ipsum
 - All CSS must be inline in a single <style> tag in the <head>
-- Output a complete, self-contained HTML file only - no explanations, no markdown, no code fences`;
+- Output a complete, self-contained HTML file only - no explanations, no markdown, no code fences${mediaSection}`;
 
   const user = `Create a complete homepage HTML mockup for this business:
 

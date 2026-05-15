@@ -7,6 +7,7 @@ import { getBhClientContext } from '@/lib/bh-client-context';
 import { getLatestClientIntake } from '@/lib/client-intake';
 import { DESIGN_ARCHETYPES, selectArchetypeForIndustry } from '@/lib/mockup-archetypes';
 import { buildMockupPrompt } from '@/lib/mockup-prompt';
+import { fetchPhotos, fetchIcon, getIndustryIcons, buildPhotoQuery } from '@/lib/mockup-media';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
     industry: requestedIndustry,
     websiteUrl: requestedWebsiteUrl,
     archetypeId,
+    lockedArchetypeId,
     previousArchetypeId,
     competitorUrl,
     vibeNotes,
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
     industry?: string;
     websiteUrl?: string;
     archetypeId?: string;
+    lockedArchetypeId?: string;
     previousArchetypeId?: string;
     competitorUrl?: string;
     vibeNotes?: string;
@@ -161,17 +164,30 @@ export async function POST(request: Request) {
 
   const industry = requestedIndustry || lead?.industry || 'general';
   const previousId = previousArchetypeId || readArchetypeIdFromHtml(existing?.html_content);
-  const requestedArchetype = archetypeId
-    ? DESIGN_ARCHETYPES.find((item) => item.id === archetypeId && item.id !== previousId)
+  const lockedArchetype = lockedArchetypeId && lockedArchetypeId !== 'auto'
+    ? DESIGN_ARCHETYPES.find((item) => item.id === lockedArchetypeId)
     : undefined;
+  const requestedArchetype = lockedArchetype ?? (archetypeId
+    ? DESIGN_ARCHETYPES.find((item) => item.id === archetypeId && item.id !== previousId)
+    : undefined);
   const archetype = requestedArchetype ?? selectArchetypeForIndustry(industry, previousId);
+  const effectiveBusinessName = businessName || client.company_name;
+  const photoQuery = buildPhotoQuery(industry, effectiveBusinessName);
+  const iconNames = getIndustryIcons(industry);
+  const [photos, ...iconResults] = await Promise.all([
+    fetchPhotos(photoQuery, 6),
+    ...iconNames.map((name) => fetchIcon(name)),
+  ]);
+  const icons = iconResults.filter((icon): icon is NonNullable<typeof icon> => Boolean(icon));
   const prompt = buildMockupPrompt({
-    businessName: businessName || client.company_name,
+    businessName: effectiveBusinessName,
     industry,
     scrapedContent: context,
     competitorUrl: competitorUrl || lead?.competitor_url || undefined,
     vibeNotes,
     archetype,
+    photos,
+    icons,
   });
 
   const message = await anthropic.messages.create({

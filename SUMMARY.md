@@ -1,6 +1,6 @@
 # Blue Harbor Audit Summary
 
-Updated: 2026-05-13
+Updated: 2026-05-14
 
 ## Current Status
 
@@ -19,6 +19,23 @@ Completed:
 - Mockup maker UI rebuilt with 4-step flow
 - Pipeline view, slideout, dashboard shell, client overview polished
 Next session: Redesign wizard integration + proposal PDF from mockup
+
+## Session 3 — Style Selection + Real Media + Full Buildout
+Date: 2026-05-14
+Completed:
+- Visual archetype selector (12 cards with palette thumbnails) in mockup maker Step 1
+- Unsplash + Pexels photo fetching wired into every mockup generation
+- Iconify SVG icons wired per industry
+- lib/mockup-media.ts, lib/buildout-pages.ts created
+- bh_site_buildouts + bh_buildout_pages tables added
+- /api/dashboard/buildout/generate — 4-page site generation
+- /api/dashboard/buildout/deploy — Vercel programmatic deploy
+- /api/dashboard/buildout/cms — CMS content save
+- CmsEditor component (10 editable fields)
+- DomainInstructions component (6 registrars)
+- Buildout dashboard page at /dashboard/clients/[clientId]/buildout
+- "Approve & Build Full Site" button wired in mockup maker
+Next session: Proposal PDF generator from approved mockup + Resend email delivery
 
 ## Resolved Since Initial Audit
 

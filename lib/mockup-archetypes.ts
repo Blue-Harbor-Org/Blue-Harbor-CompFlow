@@ -2,6 +2,12 @@ export type DesignArchetype = {
   id: string;
   name: string;
   description: string;
+  palette: {
+    bg: string;
+    accent: string;
+    text: string;
+  };
+  fontPreview: string;
   typography: {
     heading: string;
     body: string;
@@ -19,6 +25,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'dark-luxury',
     name: 'Dark Luxury',
     description: 'Premium dark backgrounds, gold or amber accents, generous whitespace',
+    palette: { bg: '#0a0a0a', accent: '#C9A84C', text: '#ffffff' },
+    fontPreview: 'Cormorant Garamond',
     typography: { heading: 'Cormorant Garamond', body: 'DM Sans', headingWeight: '300', style: 'tall, thin serifs with wide tracking' },
     colorLogic: 'Near-black background (#0a0a0a or similar), one warm metallic accent (gold, champagne, or deep amber), white body text',
     layoutPersonality: 'Full-bleed hero with large centered headline, wide margins, section dividers using thin horizontal rules, no card grids',
@@ -29,6 +37,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'bold-editorial',
     name: 'Bold Editorial',
     description: 'Magazine-style layout, oversized type, asymmetric composition',
+    palette: { bg: '#ffffff', accent: '#E63946', text: '#111111' },
+    fontPreview: 'Bebas Neue',
     typography: { heading: 'Bebas Neue', body: 'Source Sans 3', headingWeight: '400', style: 'all-caps compressed headlines, huge contrast with small body text' },
     colorLogic: 'White or off-white background, one bold single color pulled from the brand (NOT blue unless brand is specifically blue), black type',
     layoutPersonality: 'Asymmetric grid, oversized pull quotes, text overlapping imagery, horizontal scrolling sections or full-width text blocks',
@@ -39,6 +49,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'warm-local',
     name: 'Warm & Local',
     description: 'Approachable, neighborhood business feel - trustworthy and human',
+    palette: { bg: '#FAF3E0', accent: '#A0522D', text: '#2C1A0E' },
+    fontPreview: 'Playfair Display',
     typography: { heading: 'Playfair Display', body: 'Lato', headingWeight: '700', style: 'classic serif headings, friendly weight contrast' },
     colorLogic: 'Warm off-white or cream background, earthy accent (terracotta, sage, warm brown, deep olive), never cold blues or grays',
     layoutPersonality: 'Centered hero with warm imagery space, 3-column service grid, testimonial strip, map/address section prominent, phone number in header',
@@ -49,6 +61,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'tech-minimal',
     name: 'Technical Minimal',
     description: 'Clean, precise, engineering-inspired - for technical service businesses',
+    palette: { bg: '#ffffff', accent: '#0066FF', text: '#111111' },
+    fontPreview: 'IBM Plex Sans',
     typography: { heading: 'IBM Plex Sans', body: 'IBM Plex Sans', headingWeight: '500', style: 'tight tracking, monospace details for specs/numbers' },
     colorLogic: 'Pure white background, black type, one single electric accent (electric blue #0066FF, or signal green, or warning orange) used sparingly on CTAs only',
     layoutPersonality: 'Grid-aligned, precise spacing, data/specs displayed in clean tables or stat blocks, no decorative elements',
@@ -59,6 +73,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'geometric-bold',
     name: 'Geometric Bold',
     description: 'Strong shapes, high contrast, graphic design-forward',
+    palette: { bg: '#1B3A4B', accent: '#F4A261', text: '#ffffff' },
+    fontPreview: 'Clash Display',
     typography: { heading: 'Clash Display', body: 'General Sans', headingWeight: '700', style: 'wide, geometric, high contrast with tight spacing' },
     colorLogic: 'Two-color palette maximum - one strong background color (deep navy, forest green, rich burgundy) and white, with one bright geometric accent shape',
     layoutPersonality: 'Full-color hero block, geometric shape dividers between sections, bold numbered lists, diagonal section breaks',
@@ -69,6 +85,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'organic-natural',
     name: 'Organic & Natural',
     description: 'For businesses connected to nature, health, food, or outdoor work',
+    palette: { bg: '#F2EFE9', accent: '#4A7C59', text: '#2D2D2D' },
+    fontPreview: 'Fraunces',
     typography: { heading: 'Fraunces', body: 'Nunito Sans', headingWeight: '600', style: 'soft variable serif, slightly rounded feel' },
     colorLogic: 'Nature-derived palette: forest greens, stone grays, sand, clay - never artificial or synthetic feeling colors',
     layoutPersonality: 'Organic shapes (soft blobs, leaf-inspired curves), full-bleed nature imagery zones, flowing sections without hard edges',
@@ -79,6 +97,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'retro-americana',
     name: 'Retro Americana',
     description: 'Badge-based, classic trade aesthetic - for contractors, trades, auto, food',
+    palette: { bg: '#1C2B4A', accent: '#E63946', text: '#F5F0E8' },
+    fontPreview: 'Alfa Slab One',
     typography: { heading: 'Alfa Slab One', body: 'Barlow', headingWeight: '400', style: 'slab serif display, sturdy and readable' },
     colorLogic: 'Classic palette: navy + red + cream, or black + yellow, or forest green + gold - inspired by vintage signage and trade badges',
     layoutPersonality: 'Badge/seal graphics, centered compositions, star or check icon lists, banner-style section headers, established date callouts',
@@ -89,6 +109,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'brutalist-raw',
     name: 'Brutalist Raw',
     description: 'Intentionally raw and direct - for brands that want to stand out aggressively',
+    palette: { bg: '#000000', accent: '#FFFF00', text: '#ffffff' },
+    fontPreview: 'Space Mono',
     typography: { heading: 'Space Mono', body: 'Space Mono', headingWeight: '700', style: 'monospace everything, typewriter aesthetic' },
     colorLogic: 'Black and white with ONE jarring accent color (hot pink, acid yellow, or bright orange) used on exactly one element only',
     layoutPersonality: 'Broken grid, text at angles, borders used as design elements, stark contrast, anti-decoration philosophy',
@@ -99,6 +121,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'soft-professional',
     name: 'Soft Professional',
     description: 'Medical, legal, financial, coaching - trust-forward but modern',
+    palette: { bg: '#F0F4F8', accent: '#4A6FA5', text: '#1A1A2E' },
+    fontPreview: 'Instrument Serif',
     typography: { heading: 'Instrument Serif', body: 'Plus Jakarta Sans', headingWeight: '400', style: 'refined serif heading with clean modern body' },
     colorLogic: 'Light background (soft blue-gray, warm white, or pale sage), muted professional accent (slate blue, teal, warm navy), never loud',
     layoutPersonality: 'Calm, centered hero, credential callouts (years experience, certifications, clients served), FAQ section, clean contact form prominent',
@@ -109,6 +133,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'restaurant-food',
     name: 'Restaurant & Food',
     description: 'Atmosphere-first - full bleed imagery, menu-forward, reservation-driven',
+    palette: { bg: '#1A0A00', accent: '#C8860A', text: '#FAF0E6' },
+    fontPreview: 'Lora',
     typography: { heading: 'Canela', body: "Suisse Int'l", headingWeight: '300', style: 'elegant thin display with clean body - or use Lora + Open Sans as fallback' },
     colorLogic: 'Derived entirely from the cuisine type - Italian: warm cream + terracotta; Japanese: white + black + red; BBQ: dark + amber + orange',
     layoutPersonality: 'Full-bleed hero with atmosphere image zone, menu grid, hours + location sticky, reservation CTA always visible',
@@ -119,6 +145,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'real-estate-prestige',
     name: 'Real Estate Prestige',
     description: 'Property-forward, lifestyle aspirational, listing-optimized',
+    palette: { bg: '#F8F8F5', accent: '#1B3A2D', text: '#111111' },
+    fontPreview: 'Libre Baskerville',
     typography: { heading: 'Libre Baskerville', body: 'Raleway', headingWeight: '700', style: 'authoritative serif with elegant body, wide letter spacing on headings' },
     colorLogic: 'White or very light gray base, black type, ONE prestige accent (deep navy, forest, or charcoal gold) - never red, never orange',
     layoutPersonality: 'Hero with property image zone and search bar, stats strip (homes sold, years experience, volume), featured listings grid, agent bio section',
@@ -129,6 +157,8 @@ export const DESIGN_ARCHETYPES: DesignArchetype[] = [
     id: 'health-wellness',
     name: 'Health & Wellness',
     description: 'Spas, gyms, nutrition, therapists - calm energy with clear conversion',
+    palette: { bg: '#F6F9F4', accent: '#7BA05B', text: '#2D3B2D' },
+    fontPreview: 'Jost',
     typography: { heading: 'Jost', body: 'Hind', headingWeight: '300', style: 'light and airy with generous line height' },
     colorLogic: 'Soft and clean: sage green, lavender, warm white, blush - avoid clinical whites or cold blues',
     layoutPersonality: 'Calm hero with benefit-led headline, service cards with icons, before/after or transformation section, booking CTA persistent',

@@ -1,9 +1,11 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Client } from '@/types/dashboard';
 import type { MockupRow } from '@/components/admin/ClientDetailView';
-import { selectArchetypeForIndustry } from '@/lib/mockup-archetypes';
+import { DESIGN_ARCHETYPES, selectArchetypeForIndustry } from '@/lib/mockup-archetypes';
+import { StyleSelector } from '@/components/admin/mockup/StyleSelector';
 
 type FlowStep = 'info' | 'generating' | 'preview' | 'approved';
 
@@ -27,6 +29,7 @@ function getArchetypeName(mockup: MockupRow | null) {
 }
 
 export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: Props) {
+  const router = useRouter();
   const [step, setStep] = useState<FlowStep>(mockups[0] ? 'preview' : 'info');
   const [selectedMockup, setSelectedMockup] = useState<MockupRow | null>(mockups[0] ?? null);
   const [form, setForm] = useState({
@@ -36,6 +39,7 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
     competitorUrl: client.competitor_url || '',
     vibeNotes: '',
   });
+  const [selectedArchetypeId, setSelectedArchetypeId] = useState<string | 'auto'>('auto');
   const [activeArchetype, setActiveArchetype] = useState<{
     id: string;
     name: string;
@@ -46,6 +50,7 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
   );
   const [copied, setCopied] = useState(false);
   const [sent, setSent] = useState(false);
+  const [buildoutLoading, setBuildoutLoading] = useState(false);
 
   const updateMockupList = useCallback((mockup: MockupRow) => {
     const updated = mockups.filter((m) => m.page_slug !== mockup.page_slug);
@@ -55,8 +60,10 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
   }, [mockups, onMockupsChange]);
 
   const generateMockup = useCallback(async (previousArchetypeId?: string) => {
-    const archetype = selectArchetypeForIndustry(form.industry, previousArchetypeId);
-    setActiveArchetype({ id: archetype.id, name: archetype.name });
+    const displayArchetype = selectedArchetypeId === 'auto'
+      ? selectArchetypeForIndustry(form.industry, previousArchetypeId)
+      : DESIGN_ARCHETYPES.find((a) => a.id === selectedArchetypeId) ?? selectArchetypeForIndustry(form.industry);
+    setActiveArchetype({ id: displayArchetype.id, name: displayArchetype.name });
     setStep('generating');
 
     const res = await fetch('/api/dashboard/generate-mockup', {
@@ -70,7 +77,7 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
         websiteUrl: form.websiteUrl,
         competitorUrl: form.competitorUrl || undefined,
         vibeNotes: form.vibeNotes || undefined,
-        archetypeId: archetype.id,
+        lockedArchetypeId: selectedArchetypeId,
         previousArchetypeId,
       }),
     });
@@ -89,7 +96,7 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
     setActiveArchetype({ id: archetypeId, name: archetypeName });
     updateMockupList(enriched);
     setStep('preview');
-  }, [client.id, form, selectedMockup, updateMockupList]);
+  }, [client.id, form, selectedArchetypeId, selectedMockup, updateMockupList]);
 
   const downloadHtml = useCallback(() => {
     if (!selectedMockup) return;
@@ -108,6 +115,24 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [selectedMockup]);
+
+  const handleStartBuildout = useCallback(async () => {
+    if (!selectedMockup) return;
+    setBuildoutLoading(true);
+    try {
+      const res = await fetch('/api/dashboard/buildout/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, mockupId: selectedMockup.id }),
+      });
+      const data = await res.json() as { buildoutId?: string };
+      if (data.buildoutId) {
+        router.push(`/dashboard/clients/${client.id}/buildout`);
+      }
+    } finally {
+      setBuildoutLoading(false);
+    }
+  }, [client.id, router, selectedMockup]);
 
   if (step === 'generating') {
     return (
@@ -130,24 +155,26 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
   if (step === 'approved') {
     return (
       <div className="rounded-xl p-8 text-center" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
-        <div className="mb-3 text-2xl" style={{ color: 'var(--green)' }}>
-          Design approved ✓
-        </div>
-        <div className="mx-auto flex max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-          <a
-            href={`/dashboard/clients/${client.id}/proposal`}
-            className="rounded-lg px-4 py-2 text-sm font-semibold"
-            style={{ background: 'var(--gold)', color: 'var(--navy)' }}
-          >
-            Generate Proposal from this mockup →
-          </a>
+        <div className="mx-auto max-w-md space-y-3">
+          <div className="flex items-center justify-center gap-2 font-medium" style={{ color: 'var(--green)' }}>
+            <span>✓</span> Design approved
+          </div>
           <button
             type="button"
-            disabled
-            className="rounded-lg px-4 py-2 text-sm font-semibold opacity-60"
-            style={{ background: 'rgba(9,20,40,0.6)', color: 'var(--silver)', border: '1px solid var(--border)' }}
+            onClick={() => void handleStartBuildout()}
+            disabled={buildoutLoading || !selectedMockup}
+            className="w-full rounded-xl py-3 text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: '#111827' }}
           >
-            Deploy to preview URL →
+            {buildoutLoading ? 'Starting buildout...' : 'Build Full Site (Home, About, Services, Contact)'}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push(`/dashboard/clients/${client.id}/proposal`)}
+            className="w-full rounded-xl border py-2 text-sm"
+            style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}
+          >
+            Generate Proposal First →
           </button>
         </div>
       </div>
@@ -243,6 +270,9 @@ export default function ClientWebsiteTab({ client, mockups, onMockupsChange }: P
         <Field label="Competitor URL (optional)">
           <input className="input" value={form.competitorUrl} onChange={(e) => setForm({ ...form, competitorUrl: e.target.value })} />
         </Field>
+        <div className="lg:col-span-2">
+          <StyleSelector selectedId={selectedArchetypeId} onSelect={setSelectedArchetypeId} />
+        </div>
         <Field label="Style notes (optional)" className="lg:col-span-2">
           <textarea
             className="input min-h-[110px] resize-y"
